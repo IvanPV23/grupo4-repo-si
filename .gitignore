@@ -1,0 +1,41 @@
+# Entorno virtual
+venv/
+env/
+ENV/
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Dataset
+datasets/
+*.zip
+mlflow.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Modelos
+*.h5
+*.hdf5
+*.pb
+saved_models/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporales
+*.log
+classification_report.txt

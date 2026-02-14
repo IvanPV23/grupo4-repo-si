@@ -1,19 +1,19 @@
 @echo off
 echo Compilando agentes 
 
-javac -cp ".;jade.jar" AgenteSensorRed.java
+javac -cp ".;lib/*" AgenteSensorRed.java
 if %errorlevel% neq 0 goto error
 
-javac -cp ".;jade.jar" AgenteAnalizadorMalware.java
+javac -cp ".;lib/*" AgenteAnalizadorMalware.java
 if %errorlevel% neq 0 goto error
 
-javac -cp ".;jade.jar" AgenteCorrelacionEventos.java
+javac -cp ".;lib/*" AgenteCorrelacionEventos.java
 if %errorlevel% neq 0 goto error
 
-javac -cp ".;jade.jar" AgenteInteligenciaAmenazas.java
+javac -cp ".;lib/*" AgenteInteligenciaAmenazas.java
 if %errorlevel% neq 0 goto error
 
-javac -cp ".;jade.jar" AgenteOrquestadorRespuesta.java
+javac -cp ".;lib/*" AgenteOrquestadorRespuesta.java
 if %errorlevel% neq 0 goto error
 
 goto end

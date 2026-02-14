@@ -1,0 +1,7 @@
+mlflow
+tensorflow
+numpy
+matplotlib
+scikit-learn
+kagglehub
+Pillow
