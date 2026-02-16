@@ -1,16 +1,16 @@
 # Entorno virtual
-venv/
-env/
-ENV/
+mlflow_practica/venv/
+mlflow_practica/env/
+mlflow_practica/ENV/
 
 # MLflow
-mlruns/
-mlartifacts/
+mlflow_practica/mlruns/
+mlflow_practica/mlartifacts/
 
 # Dataset
-datasets/
-*.zip
-mlflow.db
+mlflow_practica/datasets/
+/*.zip
+mlflow_practica/mlflow.db
 
 # Python
 __pycache__/
@@ -39,3 +39,120 @@ Thumbs.db
 # Temporales
 *.log
 classification_report.txt
+
+# ============================================
+# PROYECTO FINAL DEL CURSO
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================================
+# Virtual Environments
+# ============================================
+venv/
+ENV/
+env/
+.venv
+
+# ============================================
+# IDEs
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================
+# Environment Variables
+# ============================================
+.env
+.env.local
+.env.*.local
+
+# ============================================
+# Logs
+# ============================================
+*.log
+data/logs/*.log
+logs/
+
+# ============================================
+# Data
+# ============================================
+data/processed/*
+!data/processed/.gitkeep
+data/raw/*.csv
+!data/raw/tickets_ejemplo.csv
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# n8n
+# ============================================
+n8n/data/
+n8n/credentials/*.json
+!n8n/credentials/.gitkeep
+
+# ============================================
+# Machine Learning
+# ============================================
+*.pkl
+*.joblib
+*.h5
+*.model
+
+# ============================================
+# Testing
+# ============================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# ============================================
+# Documentation
+# ============================================
+site/
+.mkdocs.yml
+
+# ============================================
+# Jupyter Notebooks
+# ============================================
+.ipynb_checkpoints
+*.ipynb
+
+# ============================================
+# OS
+# ============================================
+Thumbs.db
+.DS_Store
+
+# ============================================
+# Environment Variables
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.example

@@ -1,0 +1,9 @@
+ticket_id,tipo_ticket,tipo_error,area,solicitante,titulo,descripcion,prioridad,complejidad_real,mesa_correcta,tiempo_resolucion
+JIRA-001,incidencia,redes,operaciones,Juan Perez,Internet lento en oficina,Usuarios del piso 3 reportan lentitud en conexión a internet desde las 9am,alta,media,mesa_n2,4
+JIRA-002,solicitud,software,finanzas,Maria Lopez,Instalación de Excel,Necesito que instalen Microsoft Excel en mi laptop nueva,media,baja,mesa_n1,1
+JIRA-003,incidencia,infraestructura,tecnologia,Carlos Ruiz,Servidor web caído,El servidor web principal no responde desde las 8am. Afecta a toda la operación,urgente,critica,mesa_especialista,8
+JIRA-004,incidencia,acceso,rrhh,Ana Garcia,No puedo acceder al sistema de planillas,Olvide mi contraseña del sistema de RRHH,media,baja,mesa_n1,0.5
+JIRA-005,solicitud,hardware,comercial,Luis Martinez,Teclado no funciona,Necesito un teclado nuevo porque el mio dejó de funcionar,baja,baja,mesa_n1,2
+JIRA-006,incidencia,software,cobranzas,Sofia Torres,Error en sistema de cobranzas,El sistema muestra error al intentar procesar pagos. Urgente,urgente,alta,mesa_n2,6
+JIRA-007,incidencia,redes,operaciones,Pedro Sanchez,No hay WiFi en sala de reuniones,La red WiFi no funciona en sala de reuniones del piso 2,media,media,mesa_n2,3
+JIRA-008,solicitud,configuracion,finanzas,Carmen Diaz,Configurar impresora de red,Necesito que configuren la impresora del departamento,baja,baja,mesa_n1,1

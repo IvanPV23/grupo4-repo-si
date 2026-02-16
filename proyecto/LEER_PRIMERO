@@ -1,0 +1,209 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║  SISTEMA INTELIGENTE DE DERIVACIÓN AUTOMÁTICA DE TICKETS                  ║
+║  Proyecto - Curso Sistemas Inteligentes                                   ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+📦 CONTENIDO DEL PROYECTO
+═══════════════════════════════════════════════════════════════════════════
+
+Este archivo comprimido contiene la estructura COMPLETA del proyecto lista 
+para trabajar. Todo ha sido configurado y documentado.
+
+📂 ESTRUCTURA
+─────────────────────────────────────────────────────────────────────────
+
+proyecto-tickets-ia/
+├── README.md                    ← Empieza leyendo esto
+├── docs/
+│   ├── RESUMEN_REUNION.md      ← Resumen de esta reunión
+│   ├── TAREAS_MELLANY.md       ← Guía para Mellany
+│   ├── TAREAS_MAURICIO.md      ← Guía para Mauricio
+│   ├── TAREAS_JHAIR.md         ← Guía para Jhair
+│   └── GIT_GITHUB_GUIA.md      ← Cómo usar Git/GitHub
+├── models/
+│   └── ticket.py               ← Modelo de Ticket (completo)
+├── agents/                     ← 3 agentes implementados
+├── api/                        ← API REST con FastAPI
+├── docker-compose.yml          ← Orquestación de servicios
+└── requirements.txt            ← Dependencias Python
+
+🚀 INICIO RÁPIDO
+═══════════════════════════════════════════════════════════════════════════
+
+1. DESCOMPRIMIR
+   ─────────────
+   - Extraer proyecto-tickets-ia/ a tu carpeta de trabajo
+
+2. LEER DOCUMENTACIÓN (15 minutos)
+   ───────────────────────────────
+   - README.md → Visión general
+   - docs/RESUMEN_REUNION.md → Qué se hizo y próximos pasos
+   - docs/TAREAS_[TU_NOMBRE].md → Tu guía específica
+
+3. CONFIGURAR ENTORNO (10 minutos)
+   ────────────────────────────────
+   
+   a) Crear entorno virtual Python:
+      
+      python -m venv venv
+      source venv/bin/activate      # Linux/Mac
+      venv\Scripts\activate         # Windows
+   
+   b) Instalar dependencias:
+      
+      pip install -r requirements.txt
+
+4. SUBIR A GITHUB (Primera persona en hacerlo)
+   ────────────────────────────────────────────
+   
+   a) Crear repositorio en GitHub
+      - Nombre sugerido: sistema-inteligente-derivacion-tickets
+      - Público o Privado (según prefieran)
+   
+   b) Subir código:
+      
+      cd proyecto-tickets-ia
+      git init
+      git add .
+      git commit -m "Initial commit: Estructura base del proyecto"
+      git remote add origin https://github.com/USUARIO/REPO.git
+      git push -u origin main
+   
+   c) Compartir URL del repositorio con el equipo
+
+5. CLONAR REPOSITORIO (Resto del equipo)
+   ──────────────────────────────────────
+   
+   git clone https://github.com/USUARIO/REPO.git
+   cd REPO
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+
+6. CREAR TU BRANCH
+   ───────────────
+   
+   git checkout -b feature/tu-nombre-tarea
+
+7. EMPEZAR A TRABAJAR
+   ──────────────────
+   
+   Ver tu guía específica en docs/TAREAS_[TU_NOMBRE].md
+
+📋 TAREAS POR PERSONA
+═══════════════════════════════════════════════════════════════════════════
+
+👤 MELLANY
+──────────
+Archivo: docs/TAREAS_MELLANY.md
+
+Tareas:
+1. Crear dataset de tickets (data/raw/tickets.csv)
+2. Implementar reglas de derivación (utils/reglas_derivacion.py)
+3. Sistema de métricas (utils/metricas.py)
+4. Documentar proceso de decisión
+
+Branch sugerida: feature/mellany-dataset
+
+👤 MAURICIO
+───────────
+Archivo: docs/TAREAS_MAURICIO.md
+
+Tareas:
+1. Crear modelo de Equipo (models/equipo.py)
+2. Refinar modelo de Ticket
+3. Clasificador ML (models/clasificador.py) - opcional
+4. Análisis exploratorio de datos
+
+Branch sugerida: feature/mauricio-modelos
+
+👤 JHAIR
+────────
+Archivo: docs/TAREAS_JHAIR.md
+
+Tareas:
+1. Configurar Docker Compose completo
+2. Extender API REST (api/main.py)
+3. Configurar n8n y workflows
+4. Tests de conectividad
+
+Branch sugerida: feature/jhair-infraestructura
+
+👤 [COORDINADOR]
+────────────────
+Tareas:
+1. Refinar agentes (agents/*/main.py)
+2. Workflows de n8n
+3. Integración final
+4. Coordinación del equipo
+
+Branch sugerida: feature/agentes-n8n
+
+🛠️ COMANDOS ÚTILES
+═══════════════════════════════════════════════════════════════════════════
+
+# Ver estructura del proyecto
+tree -L 2 proyecto-tickets-ia/
+
+# Levantar servicios Docker
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+
+# Probar API
+curl http://localhost:8000/health
+
+# Git - ver cambios
+git status
+git diff
+
+# Git - guardar cambios
+git add .
+git commit -m "feat: descripción del cambio"
+git push origin tu-branch
+
+✅ VERIFICACIÓN
+═══════════════════════════════════════════════════════════════════════════
+
+Verifica que tienes estos archivos principales:
+
+[x] README.md
+[x] requirements.txt
+[x] docker-compose.yml
+[x] models/ticket.py
+[x] api/main.py
+[x] agents/complejidad/main.py
+[x] agents/capacidad/main.py
+[x] agents/decisor/main.py
+[x] docs/TAREAS_MELLANY.md
+[x] docs/TAREAS_MAURICIO.md
+[x] docs/TAREAS_JHAIR.md
+[x] docs/GIT_GITHUB_GUIA.md
+[x] docs/RESUMEN_REUNION.md
+
+📞 SOPORTE
+═══════════════════════════════════════════════════════════════════════════
+
+Si tienes dudas:
+1. Revisa la documentación en docs/
+2. Busca en el README.md
+3. Consulta con tu equipo
+4. Revisa la propuesta original del proyecto
+
+🎯 OBJETIVO
+═══════════════════════════════════════════════════════════════════════════
+
+Implementar un sistema inteligente que automáticamente derive tickets de 
+soporte a las mesas especializadas apropiadas, usando:
+
+- n8n como orquestador
+- Arquitectura multiagente
+- Reglas heurísticas explicables
+- Machine Learning (opcional)
+
+¡TODO ESTÁ LISTO PARA EMPEZAR A TRABAJAR! 🚀
+
+═══════════════════════════════════════════════════════════════════════════

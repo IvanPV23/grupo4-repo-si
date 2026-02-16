@@ -1,0 +1,159 @@
+version: '3.8'
+
+services:
+  # =====================================================
+  # n8n - Orquestador de Workflows
+  # =====================================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: sistema-tickets-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=America/Lima
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+    networks:
+      - tickets-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =====================================================
+  # API Principal - FastAPI
+  # =====================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sistema-tickets-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/tickets.db
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./api:/app/api
+      - ./models:/app/models
+      - ./utils:/app/utils
+      - ./data:/app/data
+    depends_on:
+      - n8n
+    networks:
+      - tickets-network
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # =====================================================
+  # Agente de Complejidad
+  # =====================================================
+  agente-complejidad:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agente-complejidad
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - AGENT_NAME=complejidad
+      - AGENT_PORT=8001
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./agents/complejidad:/app/agents/complejidad
+      - ./models:/app/models
+      - ./utils:/app/utils
+      - ./data:/app/data
+    networks:
+      - tickets-network
+    command: uvicorn agents.complejidad.main:app --host 0.0.0.0 --port 8001 --reload
+
+  # =====================================================
+  # Agente de Capacidad
+  # =====================================================
+  agente-capacidad:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agente-capacidad
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - AGENT_NAME=capacidad
+      - AGENT_PORT=8002
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./agents/capacidad:/app/agents/capacidad
+      - ./models:/app/models
+      - ./utils:/app/utils
+      - ./data:/app/data
+    networks:
+      - tickets-network
+    command: uvicorn agents.capacidad.main:app --host 0.0.0.0 --port 8002 --reload
+
+  # =====================================================
+  # Agente Decisor
+  # =====================================================
+  agente-decisor:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agente-decisor
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      - AGENT_NAME=decisor
+      - AGENT_PORT=8003
+      - LOG_LEVEL=INFO
+      - AGENTE_COMPLEJIDAD_URL=http://agente-complejidad:8001
+      - AGENTE_CAPACIDAD_URL=http://agente-capacidad:8002
+    volumes:
+      - ./agents/decisor:/app/agents/decisor
+      - ./models:/app/models
+      - ./utils:/app/utils
+      - ./data:/app/data
+    depends_on:
+      - agente-complejidad
+      - agente-capacidad
+    networks:
+      - tickets-network
+    command: uvicorn agents.decisor.main:app --host 0.0.0.0 --port 8003 --reload
+
+  # =====================================================
+  # Base de Datos PostgreSQL (Opcional)
+  # =====================================================
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: sistema-tickets-db
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_USER=tickets_user
+  #     - POSTGRES_PASSWORD=tickets_pass
+  #     - POSTGRES_DB=tickets_db
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - tickets-network
+
+networks:
+  tickets-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
