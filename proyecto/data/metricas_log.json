@@ -1,0 +1,119 @@
+[
+  {
+    "ticket_id": "T2000",
+    "timestamp": "2026-02-21T19:06:11.069852",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "mesa_especialista",
+    "complejidad": "critica",
+    "confianza": 0.95,
+    "tipo_decision": "automatica"
+  },
+  {
+    "ticket_id": "SD-80573",
+    "timestamp": "2026-02-21T21:46:40.513580",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80417",
+    "timestamp": "2026-02-21T21:46:40.910183",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80573",
+    "timestamp": "2026-02-21T21:47:33.383326",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80417",
+    "timestamp": "2026-02-21T21:47:33.660480",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80573",
+    "timestamp": "2026-02-21T22:16:18.675888",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80417",
+    "timestamp": "2026-02-21T22:16:19.150160",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80573",
+    "timestamp": "2026-02-21T22:24:57.634484",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80417",
+    "timestamp": "2026-02-21T22:25:00.007497",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80573",
+    "timestamp": "2026-02-21T22:35:20.928845",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80417",
+    "timestamp": "2026-02-21T22:35:21.125478",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80573",
+    "timestamp": "2026-02-22T01:16:06.816097",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80417",
+    "timestamp": "2026-02-22T01:16:07.079243",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  }
+]

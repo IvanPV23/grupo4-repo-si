@@ -45,38 +45,65 @@ class CapacidadResponse(BaseModel):
 # Estado del sistema (En producción vendría de BD)
 # =====================================================
 
-# Estado simulado de las mesas
+# Estado simulado de las mesas reales de Protecta Seguros
 ESTADO_MESAS = {
-    "mesa_n1": {
-        "especialidad": "soporte_general",
+    "Service Desk 1": {
+        "especialidad": "N1 - Soporte General",
         "max_tickets": 20,
         "carga_actual": 12
     },
-    "mesa_n2": {
-        "especialidad": "soporte_avanzado",
+    "Service Desk 2": {
+        "especialidad": "N1 - Soporte General",
+        "max_tickets": 20,
+        "carga_actual": 8
+    },
+    "Squad - Mesa Ongoing": {
+        "especialidad": "N2 - Soporte Avanzado",
         "max_tickets": 15,
         "carga_actual": 10
     },
-    "mesa_especialista": {
-        "especialidad": "infraestructura",
+    "soportedigital": {
+        "especialidad": "N3 - Digital y E-commerce",
         "max_tickets": 10,
         "carga_actual": 5
     },
-    "mesa_infraestructura": {
-        "especialidad": "infraestructura",
+    "soporteapp": {
+        "especialidad": "N3 - Aplicativos y Facturación",
+        "max_tickets": 10,
+        "carga_actual": 4
+    },
+    "Squad - Mesa Vida Ley": {
+        "especialidad": "N3 - Producto Vida Ley",
         "max_tickets": 8,
-        "carga_actual": 6
+        "carga_actual": 3
+    },
+    "Squad - Mesa SCTR": {
+        "especialidad": "N3 - Producto SCTR",
+        "max_tickets": 8,
+        "carga_actual": 2
     }
 }
 
-# Mapeo de tipos de error a mesas
+# Mapeo de keywords de tipo_atencion_sd a mesas (basado en data real de JIRA)
 ESPECIALIZACION_MESAS = {
-    "software": ["mesa_n1", "mesa_n2"],
-    "hardware": ["mesa_n2", "mesa_especialista"],
-    "redes": ["mesa_n2", "mesa_especialista", "mesa_infraestructura"],
-    "infraestructura": ["mesa_especialista", "mesa_infraestructura"],
-    "acceso": ["mesa_n1"],
-    "configuracion": ["mesa_n1", "mesa_n2"]
+    # Solicitudes simples → N1
+    "desafiliacion": ["Service Desk 1", "Service Desk 2"],
+    "actualizacion de datos": ["Service Desk 1"],
+    "envio de correo": ["Service Desk 1"],
+    "activacion": ["Service Desk 1", "Service Desk 2"],
+    "inclusion": ["Service Desk 1"],
+    # Errores moderados → N2
+    "error de servicio": ["Squad - Mesa Ongoing", "soportedigital"],
+    "error de servidor": ["Squad - Mesa Ongoing", "soportedigital"],
+    "emision": ["soportedigital", "Squad - Mesa Ongoing"],
+    "migracion": ["Squad - Mesa Ongoing", "soporteapp"],
+    # Facturación → soporteapp
+    "factura": ["soporteapp", "Squad - Mesa Ongoing"],
+    "planilla": ["soporteapp"],
+    "refactura": ["soporteapp"],
+    "conciliacion": ["soporteapp"],
+    # Default
+    "default": ["Service Desk 1", "Squad - Mesa Ongoing"]
 }
 
 # =====================================================
@@ -97,9 +124,10 @@ def calcular_capacidad_mesa(mesa_id: str) -> CapacidadMesa:
         disponible=porcentaje < 90  # Disponible si está bajo 90%
     )
 
-def obtener_mesas_especializadas(tipo_error: str) -> List[str]:
-    """Retorna las mesas especializadas para un tipo de error"""
-    return ESPECIALIZACION_MESAS.get(tipo_error, ["mesa_n1"])
+def obtener_mesas_especializadas(tipo_error: str, complejidad: str = "media") -> List[str]:
+    """Retorna las mesas especializadas para un tipo de error usando reglas centralizadas"""
+    from utils.reglas_derivacion import determinar_mesa_ideal
+    return determinar_mesa_ideal(tipo_error, complejidad)
 
 # =====================================================
 # Endpoints
@@ -134,8 +162,8 @@ async def evaluar_capacidad(consulta: ConsultaCapacidad):
     - Complejidad del ticket (si se proporciona)
     """
     try:
-        # Obtener mesas especializadas
-        mesas_especializadas = obtener_mesas_especializadas(consulta.tipo_error)
+        # Obtener mesas especializadas usando la lógica centralizada
+        mesas_especializadas = obtener_mesas_especializadas(consulta.tipo_error, consulta.complejidad)
         
         # Calcular capacidad de mesas relevantes
         capacidades = [calcular_capacidad_mesa(mesa) for mesa in mesas_especializadas]

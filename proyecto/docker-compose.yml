@@ -45,6 +45,7 @@ services:
       - ENVIRONMENT=development
       - DATABASE_URL=sqlite:///./data/tickets.db
       - LOG_LEVEL=INFO
+      - N8N_WEBHOOK_URL=http://sistema-tickets-n8n:5678/webhook/ticket
     volumes:
       - ./api:/app/api
       - ./models:/app/models

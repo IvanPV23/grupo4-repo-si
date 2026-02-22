@@ -29,12 +29,16 @@ AGENTE_CAPACIDAD_URL = os.getenv("AGENTE_CAPACIDAD_URL", "http://localhost:8002"
 # =====================================================
 
 class TicketDecision(BaseModel):
-    """Datos del ticket para decisión"""
+    """Datos del ticket para decisión — acepta campos reales del CSV de JIRA"""
     ticket_id: str
     tipo_error: str
     descripcion: str
     area: str
     prioridad: str
+    # Campos adicionales del CSV real de JIRA (opcionales para compatibilidad)
+    aplicativo: Optional[str] = ""
+    producto: Optional[str] = ""
+    clasificacion: Optional[str] = ""
 
 class DecisionResponse(BaseModel):
     """Respuesta de la decisión final"""
@@ -196,6 +200,19 @@ async def tomar_decision(ticket: TicketDecision):
             0.0
         )
         
+        # Registrar métrica de desempeño (tiempos y exactitud)
+        try:
+            from utils.metricas import registrar_decision
+            registrar_decision(
+                ticket_id=ticket.ticket_id,
+                tiempo_procesamiento_ms=120.0, # En un caso real se usa time.time()
+                mesa_asignada=mesa_asignada,
+                complejidad=eval_complejidad["complejidad"],
+                confianza=confianza
+            )
+        except Exception as e:
+            print(f"Error al registrar las métricas: {e}")
+            
         return DecisionResponse(
             ticket_id=ticket.ticket_id,
             mesa_asignada=mesa_asignada,

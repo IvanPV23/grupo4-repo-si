@@ -1,226 +1,295 @@
-# Sistema Inteligente de Derivación Automática de Tickets
+# 🎫 Sistema Inteligente de Derivación Automática de Tickets
 
-Sistema basado en arquitectura multiagente para la derivación automática e inteligente de tickets de incidencias usando n8n como orquestador.
+> **Proyecto personal** desarrollado en el contexto del Curso de Sistemas Inteligentes, 2026.  
+> Arquitectura multiagente para la clasificación y enrutamiento automático de tickets de soporte técnico, desarrollado sobre datos reales de una empresa de seguros peruana.
+
+---
+
+## 📸 Capturas del Sistema
+
+> **📌 Instrucciones para el equipo:**  
+> Coloca tus capturas de pantalla en la carpeta `IMG/` del proyecto y nómbralas `img1.png`, `img2.png`, etc.  
+> A continuación se indica qué captura va en cada espacio:
+
+| Imagen | Qué capturar |
+|---|---|
+| `img1.png` | Swagger UI en `http://localhost:8000/docs` mostrando todos los endpoints |
+| `img2.png` | n8n con el workflow activo y sus 6 nodos visibles |
+| `img3.png` | Resultado de `POST /procesar-csv` (respuesta JSON con tickets procesados) |
+| `img4.png` | Archivo CSV de reporte abierto en Excel con columnas de mesa asignada |
+| `img5.png` | Vista de ejecuciones en n8n (Executions tab) mostrando Succeeded |
+
+![Swagger UI - Endpoints disponibles](IMG/img1.png)
+
+![Workflow en n8n - 6 nodos activos](IMG/img2.png)
+
+![Resultado del procesamiento CSV](IMG/img3.png)
+
+![Reporte de derivación en Excel](IMG/img4.png)
+
+![Ejecuciones exitosas en n8n](IMG/img5.png)
+
+---
 
 ## 📋 Descripción
 
-Este proyecto implementa un sistema inteligente que automatiza la asignación de tickets de soporte técnico a las mesas especializadas correspondientes, considerando:
+Este sistema automatiza la derivación de tickets de soporte técnico a las mesas especializadas correspondientes, analizando cada ticket individualmente y tomando una decisión inteligente basada en:
 
-- Complejidad de la incidencia
-- Capacidad de los equipos
-- Tipo de error reportado
-- Área organizacional
-- Prioridad del ticket
+- **Tipo y categoría de la incidencia** (campo `Tipo de atención SD`)
+- **Complejidad técnica** evaluada por keywords y área organizacional
+- **Capacidad disponible** de cada mesa de soporte
+- **Urgencia detectada** automáticamente del texto del ticket
+- **Producto afectado** (SOAT, Vida Ley, SCTR, etc.)
 
-## 🏗️ Arquitectura
+### 🏢 Sobre el Dataset
+
+Los tickets utilizados para desarrollar y validar este sistema **provienen de datos reales de exportaciones JIRA** de una empresa de seguros peruana. Dichos datos fueron **modificados considerablemente** antes de su uso: se eliminaron nombres de personas, correos electrónicos, datos personales de asegurados, montos y cualquier información que pudiera identificar a clientes, trabajadores o situaciones reales de la empresa. Los datos resultantes se emplean únicamente con fines académicos para validar el comportamiento del sistema de derivación.
+
+---
+
+## 🏗️ Arquitectura del Sistema
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      n8n Orchestrator                    │
-│              (Coordinación de Flujos)                    │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-        ┌───────────────┼───────────────┐
-        │               │               │
-        ▼               ▼               ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│   Agente     │ │   Agente     │ │   Agente     │
-│ Complejidad  │ │  Capacidad   │ │   Decisor    │
-└──────────────┘ └──────────────┘ └──────────────┘
-        │               │               │
-        └───────────────┼───────────────┘
-                        ▼
-                ┌──────────────┐
-                │   Ticket     │
-                │   Asignado   │
-                └──────────────┘
+📥 Exportación CSV de JIRA
+         │
+         ▼
+┌─────────────────────┐
+│   Agente WATCHER    │  Lee CSV más reciente de data/inputs/
+│   utils/watcher.py  │  Filtra tickets con Estado = "Abierto"
+└─────────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│ Agente FILTRADOR    │  Mapea columnas JIRA → campos internos
+│ filtrador_features  │  Detecta urgencia en el Resumen
+└─────────────────────┘
+         │  payload limpio
+         ▼
+   ┌──────────┐
+   │   n8n    │  Orquestador de flujos (puerto 5678)
+   └────┬─────┘
+        │
+   ┌────▼─────────────┐
+   │Agente COMPLEJIDAD│  Score 0-100 → BAJA / MEDIA / ALTA / MUY_ALTA
+   │   puerto 8001    │  Keywords técnicas + prioridad + área
+   └────┬─────────────┘
+        │
+   ┌────▼─────────────┐
+   │ Agente CAPACIDAD │  Mesas con < 90% de carga disponibles
+   │   puerto 8002    │  Selecciona la menos saturada
+   └────┬─────────────┘
+        │
+   ┌────▼─────────────┐
+   │  Agente DECISOR  │  Combina complejidad + capacidad
+   │   puerto 8003    │  Calcula confianza (0.0 – 1.0)
+   └────┬─────────────┘
+        │
+   confianza ≥ 0.4?
+   ├── ✅ SÍ → DERIVADO_AUTOMATICAMENTE
+   └── ⚠️  NO → REVISION_HUMANA_REQUERIDA
+        │
+        ▼
+📊 Reporte CSV en data/outputs/reporte_FECHA.csv
 ```
+
+### Mesas de Soporte (Protecta Seguros — simuladas)
+
+| Nivel | Mesa | Especialidad |
+|---|---|---|
+| N1 | Service Desk 1 / 2 | Solicitudes simples, consultas |
+| N2 | Squad - Mesa Ongoing | Incidentes moderados, escalamiento |
+| N3 | soportedigital | Ecommerce, emisión SOAT digital |
+| N3 | soporteapp | Facturación, planillas, conciliación |
+| N3 | Squad - Mesa Vida Ley | Incidencias de producto Vida Ley |
+| N3 | Squad - Mesa SCTR | Incidencias de producto SCTR |
+
+---
 
 ## 📁 Estructura del Proyecto
 
 ```
-proyecto-tickets-ia/
-├── agents/                     # Agentes inteligentes
-│   ├── complejidad/           # Agente evaluador de complejidad
-│   ├── capacidad/             # Agente evaluador de capacidad
-│   └── decisor/               # Agente decisor final
-├── api/                       # API REST (FastAPI)
-├── config/                    # Archivos de configuración
-├── data/                      # Datos del sistema
-│   ├── raw/                   # Datos crudos
-│   ├── processed/             # Datos procesados
-│   └── logs/                  # Logs del sistema
-├── docs/                      # Documentación
-├── models/                    # Modelos de datos
-├── n8n/                       # Configuración de n8n
-│   ├── workflows/             # Workflows exportados
-│   └── credentials/           # Credenciales (gitignored)
-├── tests/                     # Tests automatizados
-│   ├── unit/                  # Tests unitarios
-│   └── integration/           # Tests de integración
-└── utils/                     # Utilidades y helpers
+proyecto/
+├── IMG/                        ← 📸 Capturas de pantalla del sistema
+│   ├── img1.png                   Swagger UI
+│   ├── img2.png                   Workflow n8n
+│   ├── img3.png                   Resultado /procesar-csv
+│   ├── img4.png                   Reporte Excel
+│   └── img5.png                   Ejecuciones n8n
+│
+├── agents/
+│   ├── complejidad/main.py     ← Agente evaluador de complejidad (puerto 8001)
+│   ├── capacidad/main.py       ← Agente evaluador de disponibilidad (puerto 8002)
+│   └── decisor/main.py         ← Agente decisor final (puerto 8003)
+│
+├── api/
+│   └── main.py                 ← API REST principal (puerto 8000)
+│
+├── data/
+│   ├── inputs/                 ← 📂 Deposita aquí el CSV de JIRA para procesar
+│   │   └── README.md
+│   └── outputs/                ← 📊 Reportes CSV generados automáticamente
+│
+├── docs/
+│   ├── JHAIR.md                ← Guía de tareas infraestructura
+│   ├── MAURICIO.md             ← Guía de tareas ML/modelos
+│   ├── MELLANY.md              ← Guía de tareas datos/reglas
+│   ├── READ_GITHUB.md          ← Guía completa de setup y uso
+│   └── READ_VALIDACIONES.md    ← Validación paso a paso del sistema
+│
+├── models/
+│   └── ticket.py               ← Modelos Pydantic del sistema
+│
+├── utils/
+│   ├── watcher.py              ← Agente Watcher (lectura de CSV)
+│   ├── filtrador_features.py   ← Agente Filtrador (mapeo JIRA → interno)
+│   ├── reglas_derivacion.py    ← Lógica de derivación con mesas reales
+│   └── metricas.py             ← Registro de métricas del sistema
+│
+├── n8n_workflow_derivacion.json ← Workflow de n8n (importar en la UI)
+├── docker-compose.yml          ← Orquestación de todos los servicios
+├── Dockerfile                  ← Imagen de la API principal
+├── Dockerfile.agent            ← Imagen compartida de los agentes
+└── requirements.txt            ← Dependencias Python
 ```
-
-## 🚀 Instalación
-
-### Prerrequisitos
-
-- Docker y Docker Compose
-- Python 3.9+
-- Git
-
-### Pasos de Instalación
-
-1. **Clonar el repositorio**
-```bash
-git clone https://github.com/tu-usuario/proyecto-tickets-ia.git
-cd proyecto-tickets-ia
-```
-
-2. **Crear entorno virtual de Python**
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# o
-venv\Scripts\activate     # Windows
-```
-
-3. **Instalar dependencias**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Configurar variables de entorno**
-```bash
-cp .env.example .env
-# Editar .env con tus configuraciones
-```
-
-5. **Levantar servicios con Docker**
-```bash
-docker-compose up -d
-```
-
-6. **Acceder a n8n**
-- URL: http://localhost:5678
-- Importar workflows desde `n8n/workflows/`
-
-## 🛠️ Tecnologías Utilizadas
-
-- **n8n**: Orquestador de workflows
-- **Python 3.9+**: Backend y agentes
-- **FastAPI**: API REST
-- **Docker**: Contenerización
-- **Pandas**: Procesamiento de datos
-- **scikit-learn**: Machine Learning (opcional)
-- **SQLite/PostgreSQL**: Persistencia de datos
-
-## 👥 Equipo y Responsabilidades
-
-### 👤 Mellany - Procesamiento de Datos y Lógica de Negocio
-- Diseño y manipulación del dataset de tickets
-- Implementación de reglas de negocio
-- Optimización de procesos de decisión
-- Métricas y evaluación del sistema
-
-**Tareas asignadas:**
-- [ ] Crear dataset de tickets simulados (`data/raw/tickets.csv`)
-- [ ] Implementar reglas heurísticas de derivación
-- [ ] Desarrollar módulo de métricas y evaluación
-- [ ] Documentar proceso de decisión
-
-### 👤 Mauricio - Modelado de Datos y ML
-- Definición de modelos de datos
-- Implementación de clasificadores (opcional)
-- Análisis de patrones en tickets
-- Validación de modelos
-
-**Tareas asignadas:**
-- [ ] Refinar modelo de Ticket (ya está base en `models/ticket.py`)
-- [ ] Crear modelo de datos para equipos/mesas
-- [ ] Implementar clasificador de complejidad (opcional)
-- [ ] Análisis exploratorio de datos
-
-### 👤 Jhair - Infraestructura y Conectividad
-- Configuración de Docker y servicios
-- API REST con FastAPI
-- Integración entre componentes
-- Configuración de n8n
-
-**Tareas asignadas:**
-- [ ] Configurar Docker Compose completo
-- [ ] Implementar API REST base
-- [ ] Configurar endpoints para agentes
-- [ ] Integración con n8n
-
-### 👤 [Tu nombre] - Arquitectura y Coordinación
-- Diseño general del sistema
-- Implementación de agentes
-- Coordinación de workflows en n8n
-- Documentación técnica
-
-**Tareas asignadas:**
-- [ ] Implementar los 3 agentes (complejidad, capacidad, decisor)
-- [ ] Diseñar workflows de n8n
-- [ ] Documentación de arquitectura
-- [ ] Integración final del sistema
-
-## 🧪 Testing
-
-```bash
-# Ejecutar tests unitarios
-pytest tests/unit/
-
-# Ejecutar tests de integración
-pytest tests/integration/
-
-# Coverage
-pytest --cov=. tests/
-```
-
-## 📊 Dataset
-
-El proyecto incluye un dataset simulado de tickets con las siguientes características:
-
-- **Volumen**: ~100-200 tickets
-- **Atributos**: tipo_ticket, tipo_error, área, complejidad, prioridad
-- **Objetivo**: Validar reglas de derivación automática
-
-Ver `data/raw/README.md` para más detalles.
-
-## 🔄 Flujo de Trabajo en n8n
-
-1. **Trigger**: Webhook recibe nuevo ticket
-2. **Extracción**: Se extraen atributos del ticket
-3. **Agente Complejidad**: Evalúa complejidad técnica
-4. **Agente Capacidad**: Verifica disponibilidad de mesas
-5. **Agente Decisor**: Toma decisión final
-6. **Ejecución**: Se asigna ticket a mesa correspondiente
-7. **Registro**: Se almacena decisión y métricas
-
-## 📈 Métricas del Sistema
-
-- Tiempo promedio de procesamiento
-- Tasa de derivación automática
-- Precisión de asignación (vs ground truth)
-- Carga balanceada entre mesas
-
-## 🤝 Contribución
-
-1. Fork el proyecto
-2. Crea tu rama (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agrega nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
-
-## 📝 Licencia
-
-Este proyecto es parte del curso **Sistemas Inteligentes** y está desarrollado con fines académicos.
-
-## 📧 Contacto
-
-Para preguntas o sugerencias, contactar al equipo del proyecto.
 
 ---
 
-**Última actualización**: Febrero 2026
+## 🚀 Instalación y Puesta en Marcha
+
+### Prerrequisitos
+
+- **Docker Desktop** instalado y corriendo
+- **Git** instalado
+- **Python 3.9+** (solo para pruebas fuera de Docker)
+
+### Paso a paso
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/TU_USUARIO/TU_REPO.git
+cd proyecto
+
+# 2. Levantar todos los servicios
+docker-compose up -d --build
+
+# 3. Verificar que estén corriendo
+docker-compose ps
+```
+
+**Resultado esperado:**
+```
+sistema-tickets-api     Up   0.0.0.0:8000->8000/tcp  ← API principal
+agente-complejidad      Up   0.0.0.0:8001->8001/tcp
+agente-capacidad        Up   0.0.0.0:8002->8002/tcp
+agente-decisor          Up   0.0.0.0:8003->8003/tcp
+sistema-tickets-n8n     Up   0.0.0.0:5678->5678/tcp  ← Orquestador
+```
+
+### Configurar n8n
+
+1. Abre **http://localhost:5678** e inicia sesión
+2. Ve a Workflows → Add workflow → Import from file
+3. Selecciona `n8n_workflow_derivacion.json`
+4. Activa el workflow (toggle → Active)
+
+---
+
+## 📂 Uso del Sistema
+
+### Procesar un CSV de JIRA
+
+1. **Exporta** tus tickets de JIRA en formato CSV (separador `;`)
+2. **Copia** el archivo a la carpeta `data/inputs/`
+3. **Ejecuta** el procesamiento:
+
+```powershell
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:8000/procesar-csv?estados=Abierto" -Method POST | ConvertTo-Json -Depth 5
+```
+
+```bash
+# Linux/Mac
+curl -X POST "http://localhost:8000/procesar-csv?estados=Abierto"
+```
+
+4. El sistema genera automáticamente un reporte en `data/outputs/reporte_FECHA.csv`
+
+### Descargar el reporte en Excel
+
+- Abre en el navegador: **http://localhost:8000/reporte**  
+  → Se descarga el CSV más reciente directamente
+
+- O ve a la carpeta: `data/outputs/` → doble clic en el CSV → Excel
+
+### Ver documentación de la API
+
+Abre **http://localhost:8000/docs** → Swagger UI interactivo con todos los endpoints.
+
+---
+
+## 🌐 Endpoints Disponibles
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/health` | Estado del sistema |
+| `POST` | `/tickets` | Crear ticket manual |
+| `POST` | `/procesar-csv` | Procesar CSV de JIRA |
+| `GET` | `/inputs/status` | CSVs disponibles en inputs/ |
+| `GET` | `/reporte` | Descargar último reporte CSV |
+| `GET` | `/reporte/lista` | Listar todos los reportes |
+| `GET` | `/metricas` | Métricas del sistema |
+| `GET` | `/equipos/estado` | Estado de todas las mesas |
+| `GET` | `/docs` | Documentación Swagger |
+
+---
+
+## 🧪 Validación del Sistema
+
+```powershell
+# 1. Health check general
+Invoke-RestMethod http://localhost:8000/health
+
+# 2. Ver CSV disponibles
+Invoke-RestMethod http://localhost:8000/inputs/status
+
+# 3. Procesar tickets
+Invoke-RestMethod -Uri "http://localhost:8000/procesar-csv?estados=Abierto" -Method POST
+
+# 4. Ver métricas
+Invoke-RestMethod http://localhost:8000/metricas
+```
+
+Ver guía completa en [`docs/READ_VALIDACIONES.md`](docs/READ_VALIDACIONES.md)
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+| Tecnología | Rol |
+|---|---|
+| **Python 3.12** | Backend y lógica de agentes |
+| **FastAPI** | API REST de todos los servicios |
+| **n8n** | Orquestador de flujos (no-code/low-code) |
+| **Docker + Docker Compose** | Contenerización y orquestación |
+| **pandas** | Lectura y procesamiento de CSV |
+| **httpx** | Comunicación asíncrona entre agentes |
+| **Pydantic** | Validación de modelos de datos |
+
+---
+
+## � Autor
+
+Proyecto desarrollado de forma independiente como iniciativa personal en el contexto del Curso de **Sistemas Inteligentes**, Febrero 2026.
+
+---
+
+## ⚠️ Aviso sobre los Datos
+
+> Los archivos CSV utilizados para probar este sistema fueron exportados desde el sistema JIRA de una empresa peruana de seguros. Antes de su uso, los datos fueron **anonimizados y modificados sustancialmente**: se eliminaron nombres, correos, montos, datos de pólizas y cualquier información que permita identificar personas o situaciones reales. Su uso es estrictamente personal y académico.
+
+---
+
+## 📝 Licencia
+
+Proyecto personal — Curso **Sistemas Inteligentes**, Febrero 2026.  
+No apto para uso en producción sin las adaptaciones correspondientes.
