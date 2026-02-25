@@ -1,0 +1,89 @@
+{
+  "name": "Derivacion de Tickets - Pipeline Final",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-entrada",
+      "name": "Webhook Entrada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "ticket-derivacion"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.body;\n\n// Determinar tipo de issue: Bug para Incidente, Task para Solicitud\nconst issueType = (data.tipo_incidencia || '').toLowerCase().includes('incidente') ? 'Bug' : 'Task';\n\n// Limpiar nombre de mesa para usar como label\nconst mesaLabel = (data.mesa_asignada || 'Sin_Mesa').replace(/ /g, '_').replace(/-/g, '_');\n\n// Construir descripcion en formato Atlassian Document Format\nconst descripcionTexto = [\n  `Resumen: ${data.resumen || ''}`,\n  `Tipo: ${data.tipo_incidencia || ''}`,\n  `Tipo Atencion SD: ${data.tipo_atencion_sd || ''}`,\n  `Area: ${data.area || ''}`,\n  `Producto: ${data.producto || ''}`,\n  `Informador: ${data.informador || ''}`,\n  `Urgencia: ${data.urgencia_detectada || ''}`,\n  '',\n  '-- Decision del Sistema --',\n  `Mesa asignada: ${data.mesa_asignada || ''}`,\n  `Nivel: ${data.nivel_asignado || ''}`,\n  `Complejidad: ${data.complejidad || ''} (score: ${data.score_complejidad || 0})`,\n  `Tiempo estimado: ${data.tiempo_estimado_horas || '?'}h (${data.categoria_tiempo || ''})`,\n  `Via historico: ${data.via_historico ? 'Si' : 'No'}`,\n  `En cola: ${data.en_cola ? 'Si' : 'No'}`,\n  '',\n  `Razonamiento: ${data.razonamiento || ''}`,\n  `Ticket ID: ${data.ticket_id || ''}`\n].join('\\n');\n\nconst jiraPayload = {\n  fields: {\n    project: { key: 'SCRUM' },\n    summary: `[${data.nivel_asignado || 'N1'}] ${(data.resumen || 'Sin resumen').substring(0, 200)}`,\n    issuetype: { name: issueType },\n    assignee: { accountId: '712020:4891c296-4785-48fc-8dfe-84c7205f6679' },\n    labels: [\n      data.nivel_asignado || 'N1',\n      mesaLabel,\n      data.complejidad || 'media'\n    ],\n    description: {\n      type: 'doc',\n      version: 1,\n      content: [{\n        type: 'paragraph',\n        content: [{ type: 'text', text: descripcionTexto }]\n      }]\n    }\n  }\n};\n\nreturn [{ json: { jiraPayload, ticketId: data.ticket_id, nivel: data.nivel_asignado, mesa: data.mesa_asignada } }];"
+      },
+      "id": "preparar-payload",
+      "name": "Preparar Payload Jira",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jhairrmb3.atlassian.net/rest/api/3/issue",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.jiraPayload) }}",
+        "options": {}
+      },
+      "id": "crear-jira",
+      "name": "Crear Issue en Jira",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "jira-basic-auth",
+          "name": "Jira Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ jira_issue_key: $json.key, jira_url: 'https://jhairrmb3.atlassian.net/browse/' + $json.key, ticket_id: $('Preparar Payload Jira').item.json.ticketId, mesa: $('Preparar Payload Jira').item.json.mesa, nivel: $('Preparar Payload Jira').item.json.nivel }) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "responder",
+      "name": "Responder con Jira Key",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Entrada": {
+      "main": [[{ "node": "Preparar Payload Jira", "type": "main", "index": 0 }]]
+    },
+    "Preparar Payload Jira": {
+      "main": [[{ "node": "Crear Issue en Jira", "type": "main", "index": 0 }]]
+    },
+    "Crear Issue en Jira": {
+      "main": [[{ "node": "Responder con Jira Key", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

@@ -1,274 +1,263 @@
 """
-Agente Decisor
-Integra las evaluaciones de complejidad y capacidad para tomar la decisión final
+Agente ORQUESTADOR — Puerto 8003
+Reemplaza al Decisor + Capacidad.
+Asigna la mesa final, verifica disponibilidad y maneja la cola.
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Optional
-import uvicorn
-import httpx
+from typing import Optional, List
 from datetime import datetime
+import json
 import os
 
 app = FastAPI(
-    title="Agente Decisor",
-    description="Toma la decisión final de asignación de tickets",
-    version="1.0.0"
+    title="Agente Orquestador",
+    description="Asigna la mesa final, verifica carga y gestiona cola de espera",
+    version="2.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # =====================================================
-# Configuración
+# Estado de mesas (nombres reales de Protecta)
 # =====================================================
 
-AGENTE_COMPLEJIDAD_URL = os.getenv("AGENTE_COMPLEJIDAD_URL", "http://localhost:8001")
-AGENTE_CAPACIDAD_URL = os.getenv("AGENTE_CAPACIDAD_URL", "http://localhost:8002")
+ESTADO_MESAS = {
+    # N1 — Soporte general
+    "Service Desk 1": {"nivel": "N1", "especialidad": "Soporte general",        "max": 20, "actual": 12},
+    "Service Desk 2": {"nivel": "N1", "especialidad": "Soporte general",        "max": 20, "actual":  8},
+    # N2 — Soporte avanzado
+    "Squad - Mesa Ongoing":   {"nivel": "N2", "especialidad": "Escalamiento",    "max": 15, "actual": 10},
+    # N3 — Especialistas (evitar asignar a menos que sea necesario)
+    "soportedigital":         {"nivel": "N3", "especialidad": "Ecommerce/Digital","max": 10, "actual":  5},
+    "soporteapp":             {"nivel": "N3", "especialidad": "Facturación/Apps", "max": 10, "actual":  7},
+    "Squad - Mesa Vida Ley":  {"nivel": "N3", "especialidad": "Vida Ley",         "max":  8, "actual":  3},
+    "Squad - Mesa SCTR":      {"nivel": "N3", "especialidad": "SCTR",             "max":  8, "actual":  6},
+    "Squad - Mesa SOAT":      {"nivel": "N3", "especialidad": "SOAT",             "max":  8, "actual":  4},
+}
+
+# Cola de espera (en memoria — se pierde al reiniciar; persistencia futura)
+_COLA: List[dict] = []
+
+# =====================================================
+# Reglas de asignación de mesa
+# =====================================================
+
+def _porcentaje(mesa: str) -> float:
+    m = ESTADO_MESAS[mesa]
+    return (m["actual"] / m["max"]) * 100
+
+def _disponible(mesa: str) -> bool:
+    return _porcentaje(mesa) < 90
+
+def _candidatas_por_nivel(nivel: str) -> List[str]:
+    """Retorna mesas del nivel solicitado, ordenadas por menor carga."""
+    mesas = [m for m, d in ESTADO_MESAS.items() if d["nivel"] == nivel]
+    mesas.sort(key=_porcentaje)
+    return mesas
+
+def _mesa_por_producto(producto: str, tipo_sd: str) -> Optional[str]:
+    """Reglas específicas por producto para ir directo a la mesa N3 correcta."""
+    prod = producto.lower()
+    tipo = tipo_sd.lower()
+    if "vida ley" in prod or "vida ley" in tipo:
+        return "Squad - Mesa Vida Ley"
+    if "sctr" in prod or "sctr" in tipo:
+        return "Squad - Mesa SCTR"
+    if "soat" in prod or "soat" in tipo and "ecommerce" in tipo:
+        return "Squad - Mesa SOAT"
+    if "ecommerce" in tipo or "digital" in tipo or "web" in tipo:
+        return "soportedigital"
+    if "factura" in tipo or "planilla" in tipo or "conciliacion" in tipo:
+        return "soporteapp"
+    return None
+
+
+def asignar_mesa(
+    nivel_recomendado: str,
+    complejidad: str,
+    tipo_atencion_sd: str,
+    producto: str,
+    via_historico: bool,
+) -> dict:
+    """
+    Lógica de asignación de mesa:
+    1. Si vía histórico → forzar N1 o N2 (nunca N3)
+    2. Si N3 recomendado → revisar regla por producto
+    3. Verificar disponibilidad; si saturada → siguiente nivel o cola
+    """
+    # Histórico siempre N1/N2
+    if via_historico:
+        for nivel in ("N1", "N2"):
+            for mesa in _candidatas_por_nivel(nivel):
+                if _disponible(mesa):
+                    return {"mesa": mesa, "nivel": nivel, "en_cola": False,
+                            "razon": f"Histórico detectado → forzado a {nivel}"}
+        # Si ambos N1 y N2 están llenos (extremo), poner en cola
+        return {"mesa": "Service Desk 1", "nivel": "N1", "en_cola": True,
+                "razon": "Histórico: N1/N2 saturados → cola"}
+
+    # N3 solo si muy_alta complejidad
+    if nivel_recomendado == "N3" and complejidad == "muy_alta":
+        mesa_n3 = _mesa_por_producto(producto, tipo_atencion_sd)
+        if mesa_n3 and _disponible(mesa_n3):
+            return {"mesa": mesa_n3, "nivel": "N3", "en_cola": False,
+                    "razon": f"Complejidad MUY_ALTA → N3 ({mesa_n3})"}
+        # N3 saturada → escalar a N2
+        for mesa in _candidatas_por_nivel("N2"):
+            if _disponible(mesa):
+                return {"mesa": mesa, "nivel": "N2", "en_cola": False,
+                        "razon": f"N3 saturada → escalado a N2"}
+
+    # Caso normal: N1 o N2
+    niveles = ["N1"] if nivel_recomendado in ("N1", "baja", "media") else ["N2", "N1"]
+    for nivel in niveles:
+        for mesa in _candidatas_por_nivel(nivel):
+            if _disponible(mesa):
+                return {"mesa": mesa, "nivel": nivel, "en_cola": False,
+                        "razon": f"Complejidad {complejidad} → {nivel} ({mesa}, "
+                                 f"carga {round(_porcentaje(mesa),1)}%)"}
+
+    # Todas saturadas → cola en N1
+    mesa_fallback = _candidatas_por_nivel("N1")[0]
+    return {"mesa": mesa_fallback, "nivel": "N1", "en_cola": True,
+            "razon": "Todas las mesas N1/N2 saturadas → en cola de espera"}
 
 # =====================================================
 # Modelos
 # =====================================================
 
-class TicketDecision(BaseModel):
-    """Datos del ticket para decisión — acepta campos reales del CSV de JIRA"""
+class SolicitudOrquestador(BaseModel):
     ticket_id: str
-    tipo_error: str
-    descripcion: str
-    area: str
-    prioridad: str
-    # Campos adicionales del CSV real de JIRA (opcionales para compatibilidad)
-    aplicativo: Optional[str] = ""
+    tipo_incidencia: str
+    tipo_atencion_sd: str
+    area: Optional[str] = ""
     producto: Optional[str] = ""
-    clasificacion: Optional[str] = ""
+    resumen: Optional[str] = ""
+    informador: Optional[str] = ""
+    urgencia_detectada: Optional[str] = "media"
+    # Del Estimador
+    tiempo_estimado_horas: Optional[float] = None
+    categoria_tiempo: Optional[str] = ""
+    # Del Complejidad
+    complejidad: Optional[str] = "media"
+    score_complejidad: Optional[float] = 50.0
+    nivel_recomendado: Optional[str] = "N1"
+    # Del Histórico
+    via_historico: Optional[bool] = False
+    mesa_historico: Optional[str] = None
 
-class DecisionResponse(BaseModel):
-    """Respuesta de la decisión final"""
+class RespuestaOrquestador(BaseModel):
     ticket_id: str
     mesa_asignada: str
-    complejidad_evaluada: str
+    nivel_asignado: str
+    en_cola: bool
+    complejidad: str
     score_complejidad: float
-    capacidad_mesa: float
+    tiempo_estimado_horas: Optional[float]
+    categoria_tiempo: Optional[str]
+    via_historico: bool
     razonamiento: str
-    factores_decision: Dict
     timestamp: str
-    confianza: float  # 0-1
-
-# =====================================================
-# Funciones auxiliares
-# =====================================================
-
-async def consultar_agente_complejidad(ticket: TicketDecision) -> Dict:
-    """Consulta al agente de complejidad"""
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(
-                f"{AGENTE_COMPLEJIDAD_URL}/evaluar",
-                json={
-                    "ticket_id": ticket.ticket_id,
-                    "tipo_error": ticket.tipo_error,
-                    "descripcion": ticket.descripcion,
-                    "area": ticket.area,
-                    "prioridad": ticket.prioridad
-                },
-                timeout=10.0
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Error al consultar agente de complejidad: {str(e)}"
-            )
-
-async def consultar_agente_capacidad(tipo_error: str, complejidad: str) -> Dict:
-    """Consulta al agente de capacidad"""
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(
-                f"{AGENTE_CAPACIDAD_URL}/evaluar",
-                json={
-                    "tipo_error": tipo_error,
-                    "complejidad": complejidad
-                },
-                timeout=10.0
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Error al consultar agente de capacidad: {str(e)}"
-            )
-
-def calcular_confianza(complejidad_score: float, mesas_disponibles: int) -> float:
-    """
-    Calcula el nivel de confianza de la decisión
-    Basado en:
-    - Claridad de la evaluación de complejidad
-    - Disponibilidad de mesas apropiadas
-    """
-    # Factor de complejidad (score cercano a umbrales = menos confianza)
-    if complejidad_score < 40 or complejidad_score > 80:
-        factor_complejidad = 0.9
-    elif 45 < complejidad_score < 75:
-        factor_complejidad = 0.7
-    else:
-        factor_complejidad = 0.5
-    
-    # Factor de disponibilidad
-    factor_disponibilidad = min(mesas_disponibles / 3, 1.0)
-    
-    # Confianza combinada
-    confianza = (factor_complejidad + factor_disponibilidad) / 2
-    
-    return round(confianza, 2)
 
 # =====================================================
 # Endpoints
 # =====================================================
 
 @app.get("/health")
-async def health_check():
-    """Health check del agente"""
+async def health():
+    return {"status": "healthy", "agent": "Orquestador", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/mesas/estado")
+async def estado_mesas():
+    """Estado de carga de todas las mesas."""
     return {
-        "status": "healthy",
-        "agent": "Decisor",
-        "timestamp": datetime.now().isoformat(),
-        "dependencies": {
-            "agente_complejidad": AGENTE_COMPLEJIDAD_URL,
-            "agente_capacidad": AGENTE_CAPACIDAD_URL
+        mesa: {
+            **datos,
+            "porcentaje": round(_porcentaje(mesa), 1),
+            "disponible": _disponible(mesa),
         }
+        for mesa, datos in ESTADO_MESAS.items()
     }
 
-@app.post("/decidir", response_model=DecisionResponse)
-async def tomar_decision(ticket: TicketDecision):
+
+@app.get("/cola")
+async def ver_cola():
+    """Tickets actualmente en cola de espera."""
+    return {"en_cola": len(_COLA), "tickets": _COLA}
+
+
+@app.post("/asignar", response_model=RespuestaOrquestador)
+async def asignar(solicitud: SolicitudOrquestador):
     """
-    Toma la decisión final de asignación
-    
-    Proceso:
-    1. Consulta al agente de complejidad
-    2. Consulta al agente de capacidad
-    3. Integra ambas evaluaciones
-    4. Aplica reglas de decisión
-    5. Retorna mesa asignada con razonamiento
+    Asigna la mesa final combinando todos los resultados previos.
+    Si la mesa está saturada, pone el ticket en cola de espera.
     """
     try:
-        # Paso 1: Evaluar complejidad
-        eval_complejidad = await consultar_agente_complejidad(ticket)
-        
-        # Paso 2: Evaluar capacidad
-        eval_capacidad = await consultar_agente_capacidad(
-            tipo_error=ticket.tipo_error,
-            complejidad=eval_complejidad["complejidad"]
-        )
-        
-        # Paso 3: Integrar evaluaciones y tomar decisión
-        mesa_asignada = eval_capacidad["mesa_recomendada"]
-        
-        # Construir razonamiento
-        razonamiento_partes = [
-            f"Complejidad evaluada: {eval_complejidad['complejidad']} (score: {eval_complejidad['score']})",
-            f"Recomendación de complejidad: {eval_complejidad['recomendacion']}",
-            f"Evaluación de capacidad: {eval_capacidad['razonamiento']}",
-            f"Decisión final: Asignar a {mesa_asignada}"
-        ]
-        
-        razonamiento = " | ".join(razonamiento_partes)
-        
-        # Factores de decisión
-        factores_decision = {
-            "complejidad": eval_complejidad["factores"],
-            "mesas_disponibles": eval_capacidad["mesas_disponibles"],
-            "capacidades": [
-                {
-                    "mesa": cap["mesa"],
-                    "uso": cap["porcentaje_uso"]
-                }
-                for cap in eval_capacidad["capacidades"]
-            ]
-        }
-        
-        # Calcular confianza
-        confianza = calcular_confianza(
-            eval_complejidad["score"],
-            len(eval_capacidad["mesas_disponibles"])
-        )
-        
-        # Obtener capacidad de la mesa asignada
-        capacidad_mesa = next(
-            (cap["porcentaje_uso"] for cap in eval_capacidad["capacidades"]
-             if cap["mesa"] == mesa_asignada),
-            0.0
-        )
-        
-        # Registrar métrica de desempeño (tiempos y exactitud)
-        try:
-            from utils.metricas import registrar_decision
-            registrar_decision(
-                ticket_id=ticket.ticket_id,
-                tiempo_procesamiento_ms=120.0, # En un caso real se usa time.time()
-                mesa_asignada=mesa_asignada,
-                complejidad=eval_complejidad["complejidad"],
-                confianza=confianza
+        # Si el histórico ya determinó la mesa, usarla directamente
+        if solicitud.via_historico and solicitud.mesa_historico:
+            mesa_final = solicitud.mesa_historico
+            nivel_final = ESTADO_MESAS.get(mesa_final, {}).get("nivel", "N1")
+            en_cola = not _disponible(mesa_final)
+            razon = f"Histórico → directamente a {mesa_final}"
+        else:
+            resultado = asignar_mesa(
+                nivel_recomendado=solicitud.nivel_recomendado or "N1",
+                complejidad=solicitud.complejidad or "media",
+                tipo_atencion_sd=solicitud.tipo_atencion_sd,
+                producto=solicitud.producto or "",
+                via_historico=solicitud.via_historico or False,
             )
-        except Exception as e:
-            print(f"Error al registrar las métricas: {e}")
-            
-        return DecisionResponse(
-            ticket_id=ticket.ticket_id,
-            mesa_asignada=mesa_asignada,
-            complejidad_evaluada=eval_complejidad["complejidad"],
-            score_complejidad=eval_complejidad["score"],
-            capacidad_mesa=capacidad_mesa,
-            razonamiento=razonamiento,
-            factores_decision=factores_decision,
-            timestamp=datetime.now().isoformat(),
-            confianza=confianza
+            mesa_final  = resultado["mesa"]
+            nivel_final = resultado["nivel"]
+            en_cola     = resultado["en_cola"]
+            razon       = resultado["razon"]
+
+        # Actualizar carga (simulado)
+        if mesa_final in ESTADO_MESAS and not en_cola:
+            ESTADO_MESAS[mesa_final]["actual"] = min(
+                ESTADO_MESAS[mesa_final]["actual"] + 1,
+                ESTADO_MESAS[mesa_final]["max"]
+            )
+
+        # Registrar en cola si aplica
+        if en_cola:
+            _COLA.append({
+                "ticket_id": solicitud.ticket_id,
+                "mesa_objetivo": mesa_final,
+                "timestamp": datetime.now().isoformat()
+            })
+
+        return RespuestaOrquestador(
+            ticket_id=solicitud.ticket_id,
+            mesa_asignada=mesa_final,
+            nivel_asignado=nivel_final,
+            en_cola=en_cola,
+            complejidad=solicitud.complejidad or "media",
+            score_complejidad=solicitud.score_complejidad or 50.0,
+            tiempo_estimado_horas=solicitud.tiempo_estimado_horas,
+            categoria_tiempo=solicitud.categoria_tiempo,
+            via_historico=solicitud.via_historico or False,
+            razonamiento=(
+                f"Complejidad: {solicitud.complejidad} (score={solicitud.score_complejidad}) | "
+                f"Tiempo est.: {solicitud.tiempo_estimado_horas}h ({solicitud.categoria_tiempo}) | "
+                f"{razon}"
+            ),
+            timestamp=datetime.now().isoformat()
         )
-        
-    except HTTPException:
-        raise
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error en el proceso de decisión: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/status")
-async def verificar_estado_agentes():
-    """Verifica el estado de los agentes dependientes"""
-    estados = {}
-    
-    async with httpx.AsyncClient() as client:
-        # Verificar agente de complejidad
-        try:
-            resp = await client.get(f"{AGENTE_COMPLEJIDAD_URL}/health", timeout=5.0)
-            estados["agente_complejidad"] = "online" if resp.status_code == 200 else "error"
-        except:
-            estados["agente_complejidad"] = "offline"
-        
-        # Verificar agente de capacidad
-        try:
-            resp = await client.get(f"{AGENTE_CAPACIDAD_URL}/health", timeout=5.0)
-            estados["agente_capacidad"] = "online" if resp.status_code == 200 else "error"
-        except:
-            estados["agente_capacidad"] = "offline"
-    
-    todos_online = all(estado == "online" for estado in estados.values())
-    
-    return {
-        "status": "ready" if todos_online else "degraded",
-        "agentes": estados,
-        "timestamp": datetime.now().isoformat()
-    }
-
-# =====================================================
-# Main
-# =====================================================
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8003,
-        reload=True
-    )
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True)

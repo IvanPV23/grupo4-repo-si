@@ -156,3 +156,31 @@ Thumbs.db
 .env.local
 .env.*.local
 .env.example
+
+# ============================================
+# ⚠️  DATOS SENSIBLES PROTECTA — NO SUBIR
+# Exportaciones reales de JIRA con datos de
+# clientes, siniestros y procesos internos
+# ============================================
+proyecto/data/inputs/*.csv
+proyecto/data/inputs/*.xlsx
+proyecto/data/inputs/*.xls
+proyecto/data/inputs/*.json
+data/inputs/*.csv
+data/inputs/*.xlsx
+data/inputs/*.xls
+
+# Reportes generados (pueden contener datos reales)
+proyecto/data/outputs/*.xlsx
+proyecto/data/outputs/*.csv
+data/outputs/*.xlsx
+data/outputs/*.csv
+
+# n8n — base de datos con credenciales de Jira almacenadas
+proyecto/n8n_data/
+n8n_data/
+n8n/database.sqlite
+
+# docker-compose.yml tiene el JIRA_API_TOKEN hardcodeado
+# si quieres protegerlo también, descomenta la siguiente línea:
+# proyecto/docker-compose.yml

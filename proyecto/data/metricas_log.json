@@ -115,5 +115,23 @@
     "complejidad": "media",
     "confianza": 0.52,
     "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80573",
+    "timestamp": "2026-02-24T22:41:31.547378",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
+  },
+  {
+    "ticket_id": "SD-80417",
+    "timestamp": "2026-02-24T22:41:32.222627",
+    "tiempo_procesamiento_ms": 120.0,
+    "mesa_asignada": "Service Desk 1",
+    "complejidad": "media",
+    "confianza": 0.52,
+    "tipo_decision": "manual_requerida"
   }
 ]

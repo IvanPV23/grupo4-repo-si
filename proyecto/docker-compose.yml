@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+
   # =====================================================
   # n8n - Orquestador de Workflows
   # =====================================================
@@ -21,7 +22,6 @@ services:
       - GENERIC_TIMEZONE=America/Lima
     volumes:
       - ./n8n/data:/home/node/.n8n
-      - ./n8n/workflows:/home/node/.n8n/workflows
     networks:
       - tickets-network
     healthcheck:
@@ -31,7 +31,7 @@ services:
       retries: 3
 
   # =====================================================
-  # API Principal - FastAPI
+  # API Principal — FastAPI v3.0
   # =====================================================
   api:
     build:
@@ -42,23 +42,77 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=sqlite:///./data/tickets.db
-      - LOG_LEVEL=INFO
-      - N8N_WEBHOOK_URL=http://sistema-tickets-n8n:5678/webhook/ticket
+      - AGENTE_HISTORICO_URL=http://agente-historico:8004
+      - AGENTE_ESTIMADOR_URL=http://agente-estimador:8005
+      - AGENTE_COMPLEJIDAD_URL=http://agente-complejidad:8001
+      - AGENTE_ORQUESTADOR_URL=http://agente-orquestador:8003
+      - JIRA_API_TOKEN=ATATT3xFfGF094mZSiL3wsQDIAecBwoVhIceEYrv7D4lnqcXWGpeFEqfvOyiOwU9m9JiPzWhgalbeeHxmVZQGHhFqOHG_7tl9sJtDE53tKRZTweBqubABsjNv_QkEfiKfINHKdnw5-hZFFNSziUEKBWeIPp0OISugzEUxdmEAlcT1wryn3ahTFw=848CEDB4
+      - JIRA_DOMAIN=jhairrmb3.atlassian.net
+      - JIRA_EMAIL=jhairrmb3@gmail.com
+      - JIRA_PROJECT_KEY=SCRUM
+      - JIRA_ACCOUNT_ID=712020:4891c296-4785-48fc-8dfe-84c7205f6679
     volumes:
       - ./api:/app/api
       - ./models:/app/models
       - ./utils:/app/utils
       - ./data:/app/data
+      - ./frontend:/app/frontend
     depends_on:
-      - n8n
+      - agente-historico
+      - agente-estimador
+      - agente-complejidad
+      - agente-orquestador
     networks:
       - tickets-network
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
   # =====================================================
-  # Agente de Complejidad
+  # Agente HISTÓRICO — Puerto 8004
+  # Busca tickets similares ya resueltos en el historial
+  # =====================================================
+  agente-historico:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agente-historico
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      - AGENT_NAME=historico
+      - AGENT_PORT=8004
+    volumes:
+      - ./agents/historico:/app/agents/historico
+      - ./data:/app/data
+    networks:
+      - tickets-network
+    command: uvicorn agents.historico.main:app --host 0.0.0.0 --port 8004 --reload
+
+  # =====================================================
+  # Agente ESTIMADOR — Puerto 8005
+  # Estima tiempo de resolución (rule-based, ML después)
+  # =====================================================
+  agente-estimador:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agente-estimador
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      - AGENT_NAME=estimador
+      - AGENT_PORT=8005
+    volumes:
+      - ./agents/estimador:/app/agents/estimador
+      - ./data:/app/data
+    networks:
+      - tickets-network
+    command: uvicorn agents.estimador.main:app --host 0.0.0.0 --port 8005 --reload
+
+  # =====================================================
+  # Agente COMPLEJIDAD v2 — Puerto 8001
+  # Determina complejidad con keywords + tiempo estimado
   # =====================================================
   agente-complejidad:
     build:
@@ -71,90 +125,36 @@ services:
     environment:
       - AGENT_NAME=complejidad
       - AGENT_PORT=8001
-      - LOG_LEVEL=INFO
     volumes:
       - ./agents/complejidad:/app/agents/complejidad
-      - ./models:/app/models
-      - ./utils:/app/utils
       - ./data:/app/data
     networks:
       - tickets-network
     command: uvicorn agents.complejidad.main:app --host 0.0.0.0 --port 8001 --reload
 
   # =====================================================
-  # Agente de Capacidad
+  # Agente ORQUESTADOR — Puerto 8003
+  # Asigna mesa final, verica carga, gestiona cola
+  # (reemplaza a Decisor + Capacidad)
   # =====================================================
-  agente-capacidad:
+  agente-orquestador:
     build:
       context: .
       dockerfile: Dockerfile.agent
-    container_name: agente-capacidad
-    restart: unless-stopped
-    ports:
-      - "8002:8002"
-    environment:
-      - AGENT_NAME=capacidad
-      - AGENT_PORT=8002
-      - LOG_LEVEL=INFO
-    volumes:
-      - ./agents/capacidad:/app/agents/capacidad
-      - ./models:/app/models
-      - ./utils:/app/utils
-      - ./data:/app/data
-    networks:
-      - tickets-network
-    command: uvicorn agents.capacidad.main:app --host 0.0.0.0 --port 8002 --reload
-
-  # =====================================================
-  # Agente Decisor
-  # =====================================================
-  agente-decisor:
-    build:
-      context: .
-      dockerfile: Dockerfile.agent
-    container_name: agente-decisor
+    container_name: agente-orquestador
     restart: unless-stopped
     ports:
       - "8003:8003"
     environment:
-      - AGENT_NAME=decisor
+      - AGENT_NAME=orquestador
       - AGENT_PORT=8003
-      - LOG_LEVEL=INFO
-      - AGENTE_COMPLEJIDAD_URL=http://agente-complejidad:8001
-      - AGENTE_CAPACIDAD_URL=http://agente-capacidad:8002
     volumes:
       - ./agents/decisor:/app/agents/decisor
-      - ./models:/app/models
-      - ./utils:/app/utils
       - ./data:/app/data
-    depends_on:
-      - agente-complejidad
-      - agente-capacidad
     networks:
       - tickets-network
     command: uvicorn agents.decisor.main:app --host 0.0.0.0 --port 8003 --reload
 
-  # =====================================================
-  # Base de Datos PostgreSQL (Opcional)
-  # =====================================================
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: sistema-tickets-db
-  #   restart: unless-stopped
-  #   ports:
-  #     - "5432:5432"
-  #   environment:
-  #     - POSTGRES_USER=tickets_user
-  #     - POSTGRES_PASSWORD=tickets_pass
-  #     - POSTGRES_DB=tickets_db
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #   networks:
-  #     - tickets-network
-
 networks:
   tickets-network:
     driver: bridge
-
-volumes:
-  postgres-data:

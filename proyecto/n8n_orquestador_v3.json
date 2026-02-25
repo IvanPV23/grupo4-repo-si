@@ -1,0 +1,77 @@
+{
+  "name": "Orquestador Central — Derivacion v3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "derivar",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wh-derivar-v3-001",
+      "name": "1. Recibir Ticket",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "webhookId": "derivar-protecta-v3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sistema-tickets-api:8000/pipeline/ejecutar",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($input.first().json.body || $input.first().json) }}",
+        "options": {
+          "timeout": 35000
+        }
+      },
+      "id": "http-pipeline-v3-002",
+      "name": "2. Ejecutar Pipeline Agentes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sistema-tickets-api:8000/jira/crear",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "http-jira-python-v3-003",
+      "name": "3. Crear Issue JIRA (Python)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const jira = $input.first().json;\nconst pipeline = $('2. Ejecutar Pipeline Agentes').item.json;\n\nreturn [{\n  json: {\n    ticket_id:            pipeline.ticket_id,\n    mesa_asignada:        pipeline.mesa_asignada,\n    nivel_asignado:       pipeline.nivel_asignado,\n    en_cola:              pipeline.en_cola || false,\n    complejidad:          pipeline.complejidad,\n    score_complejidad:    pipeline.score_complejidad,\n    tiempo_estimado_horas: pipeline.tiempo_estimado_horas,\n    categoria_tiempo:     pipeline.categoria_tiempo,\n    via_historico:        pipeline.via_historico || false,\n    razonamiento:         pipeline.razonamiento,\n    resumen:              pipeline.resumen,\n    tipo_incidencia:      pipeline.tipo_incidencia,\n    tipo_atencion_sd:     pipeline.tipo_atencion_sd,\n    area:                 pipeline.area,\n    producto:             pipeline.producto || '',\n    aplicativo:           pipeline.aplicativo || '',\n    informador:           pipeline.informador || '',\n    urgencia_detectada:   pipeline.urgencia_detectada || '',\n    jira_issue_key:       jira.jira_issue_key || null,\n    jira_url:             jira.jira_url || null,\n    timestamp:            pipeline.timestamp\n  }\n}];"
+      },
+      "id": "code-respuesta-v3-004",
+      "name": "4. Armar Respuesta Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 300]
+    }
+  ],
+  "connections": {
+    "1. Recibir Ticket": {
+      "main": [[{ "node": "2. Ejecutar Pipeline Agentes", "type": "main", "index": 0 }]]
+    },
+    "2. Ejecutar Pipeline Agentes": {
+      "main": [[{ "node": "3. Crear Issue JIRA (Python)", "type": "main", "index": 0 }]]
+    },
+    "3. Crear Issue JIRA (Python)": {
+      "main": [[{ "node": "4. Armar Respuesta Final", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

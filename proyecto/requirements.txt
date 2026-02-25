@@ -1,60 +1,29 @@
 # ============================================
-# SISTEMA INTELIGENTE DE DERIVACIÓN DE TICKETS
+# SISTEMA INTELIGENTE DE DERIVACIÓN DE TICKETS v3.0
 # Dependencias de Python
 # ============================================
-
-# ---- Core ----
-python-dotenv==1.0.0          # Variables de entorno
 
 # ---- API Framework ----
 fastapi==0.109.0              # Framework API REST
 uvicorn[standard]==0.27.0     # Servidor ASGI
 pydantic==2.5.3               # Validación de datos
 
-# ---- Data Processing ----
-pandas==2.1.4                 # Manipulación de datos
-numpy==1.26.3                 # Operaciones numéricas
-
-# ---- Machine Learning (Opcional) ----
-scikit-learn==1.4.0           # ML algorithms
-joblib==1.3.2                 # Serialización de modelos
-
-# ---- Database ----
-sqlalchemy==2.0.25            # ORM para bases de datos
-psycopg2-binary==2.9.9        # PostgreSQL driver (opcional)
-
-# ---- HTTP & Webhooks ----
-requests==2.31.0              # Cliente HTTP
+# ---- HTTP ----
 httpx==0.26.0                 # Cliente HTTP async
+requests==2.31.0              # Cliente HTTP sync
+
+# ---- Excel ----
+openpyxl==3.1.2               # Reporte acumulativo .xlsx
+
+# ---- Data ----
+pandas==2.1.4                 # Lectura de CSV histórico
+python-dateutil==2.8.2        # Manejo de fechas
 
 # ---- Utilidades ----
-python-multipart==0.0.6       # Para form data en FastAPI
-aiofiles==23.2.1              # Operaciones de archivos async
+python-multipart==0.0.6       # Form data en FastAPI
+python-dotenv==1.0.0          # Variables de entorno
+aiofiles==23.2.1              # Archivos async
 
 # ---- Testing ----
-pytest==7.4.4                 # Framework de testing
-pytest-cov==4.1.0             # Coverage para pytest
-pytest-asyncio==0.23.3        # Testing async
-httpx==0.26.0                 # Cliente HTTP para tests
-
-# ---- Logging & Monitoring ----
-loguru==0.7.2                 # Logging mejorado
-
-# ---- Data Validation ----
-marshmallow==3.20.1           # Serialización/validación
-
-# ---- Date & Time ----
-python-dateutil==2.8.2        # Utilidades de fecha/hora
-
-# ---- CSV Processing ----
-csv23==0.3.4                  # Manejo mejorado de CSV
-
-# ---- Development ----
-black==24.1.0                 # Formateo de código
-flake8==7.0.0                 # Linting
-mypy==1.8.0                   # Type checking
-pylint==3.0.3                 # Análisis de código
-
-# ---- Documentation ----
-mkdocs==1.5.3                 # Documentación
-mkdocs-material==9.5.3        # Theme para mkdocs
+pytest==7.4.4
+pytest-asyncio==0.23.3
