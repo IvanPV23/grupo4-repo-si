@@ -18,6 +18,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.excel_acumulativo import agregar_fila_reporte, obtener_resumen_reporte
+from models.ticket import TicketWeb
+from services.pipeline import ejecutar_pipeline as ejecutar_pipeline_service
 
 # ── URLs de agentes (internos Docker) ─────────────────────────────────────────
 AGENTE_HISTORICO   = os.getenv("AGENTE_HISTORICO_URL",   "http://agente-historico:8004")
@@ -26,9 +28,10 @@ AGENTE_COMPLEJIDAD = os.getenv("AGENTE_COMPLEJIDAD_URL", "http://agente-compleji
 AGENTE_ORQUESTADOR = os.getenv("AGENTE_ORQUESTADOR_URL", "http://agente-orquestador:8003")
 
 # ── n8n Webhook ────────────────────────────────────────────
+# En Docker, la API resuelve por nombre de servicio ("n8n"), no por container_name.
 N8N_WEBHOOK_URL = os.getenv(
     "N8N_WEBHOOK_URL",
-    "http://sistema-tickets-n8n:5678/webhook/derivar"   # Orquestador Central v3
+    "http://n8n:5678/webhook/derivar",
 )
 
 # ── Configuración Jira Cloud ───────────────────────────────────────
@@ -63,18 +66,9 @@ if os.path.isdir(FRONTEND_DIR):
 
 # ── Modelos ───────────────────────────────────────────────────────────────────
 
-class TicketEntrada(BaseModel):
-    """Datos que llegan desde el formulario web."""
-    tipo_incidencia: str                   # "Incidente" | "Solicitud"
-    resumen: str                           # Descripción corta
-    descripcion_detallada: Optional[str] = ""
-    tipo_atencion_sd: str                  # "Error de servidor", "Consulta", etc.
-    area: str                              # "Siniestros", "Comercial", etc.
-    producto: Optional[str] = ""          # "SOAT", "Vida Ley", "SCTR"
-    aplicativo: Optional[str] = ""
-    informador: Optional[str] = ""
-    impacta_al_cierre: Optional[bool] = False
-    cantidad_afectados: Optional[int] = 1
+class TicketEntrada(TicketWeb):
+    """Alias para compatibilidad: ticket tal como llega desde el formulario web."""
+    pass
 
 class ResultadoDerivacion(BaseModel):
     ticket_id: str
@@ -114,171 +108,12 @@ async def _enviar_a_n8n(ticket_data: dict) -> dict | None:
         return None
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+ # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _generar_ticket_id() -> str:
     now = datetime.now()
     return f"TK-{now.strftime('%Y%m%d%H%M%S')}"
-
-
-def _detectar_urgencia(resumen: str, desc: str) -> str:
-    import re
-    texto = (resumen + " " + desc).upper()
-    palabras = [
-        r"\bURGENTE\b", r"\bMUY URGENTE\b", r"\bCR[IÍ]TICO\b",
-        r"\bCA[IÍ]DO\b", r"\bSIN SERVICIO\b", r"\bBLOQUEADO\b",
-        r"\bNO FUNCIONA\b", r"\bEMERGENCIA\b",
-    ]
-    for p in palabras:
-        if re.search(p, texto):
-            return "alta"
-    return "media"
-
-
-# ── Pipeline de derivación ────────────────────────────────────────────────────
-
-async def _pipeline_derivacion(ticket: TicketEntrada, ticket_id: str) -> dict:
-    """
-    Orquesta el pipeline completo:
-    HISTÓRICO → (si no hay antecedente) ESTIMADOR → COMPLEJIDAD → ORQUESTADOR
-    """
-    urgencia = _detectar_urgencia(
-        ticket.resumen, ticket.descripcion_detallada or ""
-    )
-
-    # Ajustes extra por campos nuevos
-    resumen_enriquecido = ticket.resumen
-    if ticket.impacta_al_cierre:
-        resumen_enriquecido += " IMPACTA AL CIERRE"
-    if ticket.cantidad_afectados and ticket.cantidad_afectados > 10:
-        resumen_enriquecido += f" {ticket.cantidad_afectados} usuarios afectados masivo"
-
-    async with httpx.AsyncClient(timeout=12.0) as client:
-
-        # ── 1. HISTÓRICO ──────────────────────────────────────────────────
-        via_historico  = False
-        mesa_historico = None
-        nivel_historico= None
-        hist_razon     = ""
-        try:
-            r_hist = await client.post(f"{AGENTE_HISTORICO}/consultar", json={
-                "ticket_id":       ticket_id,
-                "resumen":         resumen_enriquecido,
-                "tipo_atencion_sd": ticket.tipo_atencion_sd,
-                "area":            ticket.area,
-                "producto":        ticket.producto or "",
-            })
-            h = r_hist.json()
-            via_historico  = h.get("encontrado", False)
-            mesa_historico = h.get("mesa_sugerida")
-            nivel_historico= h.get("nivel_sugerido")
-            hist_razon     = h.get("razonamiento", "")
-        except Exception as e:
-            hist_razon = f"Histórico no disponible: {e}"
-
-        # ── 2. ESTIMADOR ──────────────────────────────────────────────────
-        tiempo_horas   = None
-        categoria_tpo  = ""
-        factores_est   = []
-        try:
-            r_est = await client.post(f"{AGENTE_ESTIMADOR}/estimar", json={
-                "ticket_id":          ticket_id,
-                "tipo_incidencia":    ticket.tipo_incidencia,
-                "tipo_atencion_sd":   ticket.tipo_atencion_sd,
-                "area":               ticket.area,
-                "producto":           ticket.producto or "",
-                "resumen":            resumen_enriquecido,
-                "urgencia_detectada": urgencia,
-            })
-            e = r_est.json()
-            tiempo_horas  = e.get("tiempo_estimado_horas")
-            categoria_tpo = e.get("categoria_tiempo", "")
-            factores_est  = e.get("factores_aplicados", [])
-        except Exception as ex:
-            factores_est = [f"Estimador no disponible: {ex}"]
-
-        # ── 3. COMPLEJIDAD ────────────────────────────────────────────────
-        complejidad    = "media"
-        score_comp     = 50.0
-        nivel_rec      = "N1"
-        recom_comp     = ""
-        try:
-            r_comp = await client.post(f"{AGENTE_COMPLEJIDAD}/evaluar", json={
-                "ticket_id":             ticket_id,
-                "tipo_incidencia":       ticket.tipo_incidencia,
-                "tipo_atencion_sd":      ticket.tipo_atencion_sd,
-                "resumen":               resumen_enriquecido,
-                "area":                  ticket.area,
-                "producto":              ticket.producto or "",
-                "urgencia_detectada":    urgencia,
-                "tiempo_estimado_horas": tiempo_horas,
-            })
-            c = r_comp.json()
-            complejidad = c.get("complejidad", complejidad)
-            score_comp  = c.get("score", score_comp)
-            nivel_rec   = c.get("nivel_recomendado", nivel_rec)
-            recom_comp  = c.get("recomendacion", "")
-        except Exception as ex:
-            recom_comp = f"Complejidad no disponible: {ex}"
-
-        # ── 4. ORQUESTADOR ────────────────────────────────────────────────
-        try:
-            r_orq = await client.post(f"{AGENTE_ORQUESTADOR}/asignar", json={
-                "ticket_id":              ticket_id,
-                "tipo_incidencia":        ticket.tipo_incidencia,
-                "tipo_atencion_sd":       ticket.tipo_atencion_sd,
-                "area":                   ticket.area,
-                "producto":               ticket.producto or "",
-                "resumen":                resumen_enriquecido,
-                "informador":             ticket.informador or "",
-                "urgencia_detectada":     urgencia,
-                "tiempo_estimado_horas":  tiempo_horas,
-                "categoria_tiempo":       categoria_tpo,
-                "complejidad":            complejidad,
-                "score_complejidad":      score_comp,
-                "nivel_recomendado":      nivel_rec,
-                "via_historico":          via_historico,
-                "mesa_historico":         mesa_historico,
-            })
-            o = r_orq.json()
-        except Exception as ex:
-            # Fallback si orquestador no disponible
-            o = {
-                "mesa_asignada":  "Service Desk 1",
-                "nivel_asignado": "N1",
-                "en_cola":        False,
-                "razonamiento":   f"Orquestador no disponible: {ex}",
-            }
-
-    razonamiento = (
-        f"Histórico: {hist_razon or 'sin antecedentes'} | "
-        f"Estimado: {tiempo_horas}h ({categoria_tpo}) | "
-        f"Complejidad: {complejidad} (score={score_comp}) | "
-        f"{o.get('razonamiento', '')}"
-    )
-
-    return {
-        "ticket_id":              ticket_id,
-        "mesa_asignada":          o.get("mesa_asignada", "Service Desk 1"),
-        "nivel_asignado":         o.get("nivel_asignado", "N1"),
-        "en_cola":                o.get("en_cola", False),
-        "complejidad":            complejidad,
-        "score_complejidad":      score_comp,
-        "tiempo_estimado_horas":  tiempo_horas,
-        "categoria_tiempo":       categoria_tpo,
-        "via_historico":          via_historico,
-        "razonamiento":           razonamiento,
-        "timestamp":              datetime.now().isoformat(),
-        # extra para Excel
-        "resumen":                ticket.resumen,
-        "tipo_incidencia":        ticket.tipo_incidencia,
-        "tipo_atencion_sd":       ticket.tipo_atencion_sd,
-        "area":                   ticket.area,
-        "producto":               ticket.producto or "",
-        "aplicativo":             ticket.aplicativo or "",
-        "informador":             ticket.informador or "",
-        "urgencia_detectada":     urgencia,
-    }
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -289,7 +124,13 @@ async def ejecutar_pipeline(ticket: TicketEntrada):
     Llamado por n8n: ejecuta los 4 agentes y devuelve el resultado crudo.
     """
     ticket_id = _generar_ticket_id()
-    resultado = await _pipeline_derivacion(ticket, ticket_id)
+    urls = {
+        "historico": AGENTE_HISTORICO,
+        "estimador": AGENTE_ESTIMADOR,
+        "complejidad": AGENTE_COMPLEJIDAD,
+        "orquestador": AGENTE_ORQUESTADOR,
+    }
+    resultado = await ejecutar_pipeline_service(ticket.model_dump(), ticket_id, urls)
     return JSONResponse(content=resultado)
 
 
@@ -382,12 +223,8 @@ async def crear_ticket(ticket: TicketEntrada):
     resultado = await _enviar_a_n8n(ticket_dict)
 
     if resultado is None:
-        # Fallback: si n8n no responde, ejecutar pipeline directo (sin Jira)
-        print("[API] n8n no disponible, fallback a pipeline directo")
-        ticket_id = _generar_ticket_id()
-        resultado = await _pipeline_derivacion(ticket, ticket_id)
-        resultado["jira_issue_key"] = None
-        resultado["jira_url"] = None
+        # n8n es el único orquestador válido en este flujo.
+        raise HTTPException(status_code=503, detail="n8n (orquestador) no disponible")
 
     # ── 2. Guardar en Excel acumulativo ─────────────────────────────
     from utils.excel_acumulativo import agregar_fila_reporte

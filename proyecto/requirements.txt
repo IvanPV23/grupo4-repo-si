@@ -19,6 +19,12 @@ openpyxl==3.1.2               # Reporte acumulativo .xlsx
 pandas==2.1.4                 # Lectura de CSV histórico
 python-dateutil==2.8.2        # Manejo de fechas
 
+# ---- ML (modelo estimador) ----
+# El artefacto `models/linear_regression.pkl` fue entrenado con scikit-learn
+# y usa LightGBM dentro del pipeline.
+scikit-learn==1.6.1
+lightgbm==4.6.0
+
 # ---- Utilidades ----
 python-multipart==0.0.6       # Form data en FastAPI
 python-dotenv==1.0.0          # Variables de entorno

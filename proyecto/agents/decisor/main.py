@@ -153,6 +153,7 @@ class SolicitudOrquestador(BaseModel):
     # Del Histórico
     via_historico: Optional[bool] = False
     mesa_historico: Optional[str] = None
+    resolucion_referencia: Optional[str] = None
 
 class RespuestaOrquestador(BaseModel):
     ticket_id: str
@@ -164,6 +165,7 @@ class RespuestaOrquestador(BaseModel):
     tiempo_estimado_horas: Optional[float]
     categoria_tiempo: Optional[str]
     via_historico: bool
+    resolucion_referencia: Optional[str] = None
     razonamiento: str
     timestamp: str
 
@@ -246,10 +248,18 @@ async def asignar(solicitud: SolicitudOrquestador):
             tiempo_estimado_horas=solicitud.tiempo_estimado_horas,
             categoria_tiempo=solicitud.categoria_tiempo,
             via_historico=solicitud.via_historico or False,
+            resolucion_referencia=solicitud.resolucion_referencia,
             razonamiento=(
-                f"Complejidad: {solicitud.complejidad} (score={solicitud.score_complejidad}) | "
-                f"Tiempo est.: {solicitud.tiempo_estimado_horas}h ({solicitud.categoria_tiempo}) | "
-                f"{razon}"
+                (
+                    f"Ticket similar en histórico → Asignar a {nivel_final} ({mesa_final}) | "
+                    f"Cómo se resolvió antes: {solicitud.resolucion_referencia}"
+                )
+                if solicitud.via_historico and solicitud.resolucion_referencia
+                else (
+                    f"Complejidad: {solicitud.complejidad or 'media'} (score={solicitud.score_complejidad or 50.0}) | "
+                    f"Tiempo est.: {solicitud.tiempo_estimado_horas}h ({solicitud.categoria_tiempo}) | "
+                    f"{razon}"
+                )
             ),
             timestamp=datetime.now().isoformat()
         )

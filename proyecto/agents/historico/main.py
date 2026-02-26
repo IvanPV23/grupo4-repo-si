@@ -1,7 +1,7 @@
 """
 Agente HISTÓRICO — Puerto 8004
 Busca tickets similares en el historial de CSVs resueltos.
-Si encuentra un antecedente, sugiere asignar a N1 o N2 directamente.
+Si encuentra un antecedente, sugiere asignar a N1 directamente.
 """
 
 from fastapi import FastAPI
@@ -9,9 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import os
-import csv
-import glob
 import re
+import sqlite3
+from pathlib import Path
 from datetime import datetime
 
 app = FastAPI(
@@ -38,6 +38,7 @@ class ConsultaHistorico(BaseModel):
     area: str
     producto: Optional[str] = ""
 
+
 class RespuestaHistorico(BaseModel):
     encontrado: bool
     ticket_id: str
@@ -53,12 +54,12 @@ class RespuestaHistorico(BaseModel):
 # Lógica de búsqueda
 # =====================================================
 
-CARPETA_INPUTS = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "..", "data", "inputs"
+DB_PATH = (
+    Path(__file__).resolve()
+    .parents[2]  # .../proyecto
+    / "data"
+    / "historico.db"
 )
-
-ESTADOS_RESUELTOS = {"terminado", "cerrado", "resuelto", "done", "closed"}
 
 PALABRAS_STOP = {"de", "la", "el", "los", "las", "un", "una", "en", "y", "a",
                  "por", "con", "del", "al", "que", "se", "no", "es", "son"}
@@ -70,30 +71,89 @@ def _palabras_clave(texto: str) -> set:
     return {p for p in palabras if p not in PALABRAS_STOP}
 
 
-def _cargar_historico() -> list:
-    """Carga todos los CSVs de data/inputs/ que tengan tickets resueltos."""
-    registros = []
-    carpeta = os.path.abspath(CARPETA_INPUTS)
-    if not os.path.isdir(carpeta):
-        return registros
+def _init_db():
+    """Crea la base SQLite y carga algunos tickets resueltos de ejemplo."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tickets_resueltos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                resumen TEXT NOT NULL,
+                tipo_atencion_sd TEXT NOT NULL,
+                area TEXT NOT NULL,
+                producto TEXT DEFAULT '',
+                resolucion_referencia TEXT NOT NULL,
+                fecha_resolucion TEXT
+            )
+            """
+        )
+        conn.commit()
 
-    archivos = glob.glob(os.path.join(carpeta, "*.csv"))
-    for archivo in archivos:
-        try:
-            for enc in ("utf-8-sig", "latin-1", "cp1252"):
-                try:
-                    with open(archivo, encoding=enc) as f:
-                        reader = csv.DictReader(f, delimiter=";")
-                        for fila in reader:
-                            estado = fila.get("Estado", "").strip().lower()
-                            if estado in ESTADOS_RESUELTOS:
-                                registros.append(fila)
-                    break
-                except UnicodeDecodeError:
-                    continue
-        except Exception as e:
-            print(f"[Histórico] Error leyendo {archivo}: {e}")
-    return registros
+        # Insertar ejemplos solo si la tabla está vacía
+        cur.execute("SELECT COUNT(*) FROM tickets_resueltos")
+        (count,) = cur.fetchone()
+        if count == 0:
+            ejemplos = [
+                (
+                    "ACTIVACIÓN DE BOT Y REPROCESO SCTR para cliente corporativo",
+                    "ACTIVACIÓN DE BOT Y REPROCESO",
+                    "Operaciones",
+                    "SCTR",
+                    "Se revisó el flujo del bot, se corrigió la configuración del webhook en n8n y se reprocesaron las colas pendientes. "
+                    "Luego se validó con el usuario informador que las activaciones se completan correctamente.",
+                    datetime.now().isoformat(),
+                ),
+                (
+                    "Error de servidor en plataforma de emisión de SOAT (HTTP 500)",
+                    "ERROR DE SERVIDOR",
+                    "Tecnología",
+                    "SOAT",
+                    "Se identificó saturación de conexiones en el pool de base de datos, se incrementó el límite de conexiones y se reinició el servicio de aplicación. "
+                    "Se agregaron métricas de observabilidad para prevenir recurrencias.",
+                    datetime.now().isoformat(),
+                ),
+                (
+                    "Actualización de datos de cliente Vida Ley",
+                    "ACTUALIZACIÓN DE DATOS DE CLIENTES",
+                    "Comercial",
+                    "Vida Ley",
+                    "Se actualizaron los datos del cliente en el maestro comercial y se sincronizaron con el core de pólizas. "
+                    "Se dejó evidencia en el expediente digital.",
+                    datetime.now().isoformat(),
+                ),
+            ]
+            cur.executemany(
+                """
+                INSERT INTO tickets_resueltos
+                    (resumen, tipo_atencion_sd, area, producto, resolucion_referencia, fecha_resolucion)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                ejemplos,
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+
+def _cargar_historico() -> list[dict]:
+    """Carga todos los tickets resueltos desde la base SQLite."""
+    if not DB_PATH.exists():
+        _init_db()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, resumen, tipo_atencion_sd, area, producto, resolucion_referencia FROM tickets_resueltos"
+        )
+        filas = cur.fetchall()
+        return [dict(f) for f in filas]
+    finally:
+        conn.close()
 
 
 def _similitud(consulta: ConsultaHistorico, fila: dict) -> float:
@@ -107,15 +167,10 @@ def _similitud(consulta: ConsultaHistorico, fila: dict) -> float:
     """
     score = 0.0
 
-    # Mapeo de columnas JIRA
-    tipo_hist = (fila.get("Campo personalizado (Tipo de atención SD)", "")
-                 or fila.get("Campo personalizado (Tipo de atencion SD)", "")
-                 or fila.get("Tipo de atencion SD", "")).strip().lower()
-    area_hist  = (fila.get("Campo personalizado (Área)", "")
-                  or fila.get("Area", "")).strip().lower()
-    prod_hist  = (fila.get("Campo personalizado (Producto SD)", "")
-                  or fila.get("Producto", "")).strip().lower()
-    res_hist   = fila.get("Resumen", "").strip()
+    tipo_hist = (fila.get("tipo_atencion_sd") or "").strip().lower()
+    area_hist = (fila.get("area") or "").strip().lower()
+    prod_hist = (fila.get("producto") or "").strip().lower()
+    res_hist = (fila.get("resumen") or "").strip()
 
     if tipo_hist and consulta.tipo_atencion_sd.lower() == tipo_hist:
         score += 0.40
@@ -126,18 +181,15 @@ def _similitud(consulta: ConsultaHistorico, fila: dict) -> float:
 
     # Coincidencia de palabras clave en resumen
     kw_consulta = _palabras_clave(consulta.resumen)
-    kw_hist     = _palabras_clave(res_hist)
-    comunes     = len(kw_consulta & kw_hist)
-    score      += min(0.20, (comunes // 2) * 0.10)
+    kw_hist = _palabras_clave(res_hist)
+    comunes = len(kw_consulta & kw_hist)
+    score += min(0.20, (comunes // 2) * 0.10)
 
     return round(score, 2)
 
 
 def _determinar_nivel(fila: dict) -> str:
-    """Determina el nivel al que fue asignado el ticket histórico."""
-    responsable = (fila.get("Responsable", "")
-                   or fila.get("Campo personalizado (Atendido por)", "")).lower()
-    # Heurística simple: si fue resuelto → probablemente N1/N2
+    """Determina el nivel al que fue asignado el ticket histórico (simple: siempre N1)."""
     return "N1"
 
 # =====================================================
@@ -172,12 +224,12 @@ async def consultar_historico(consulta: ConsultaHistorico):
     scored.sort(key=lambda x: x[1], reverse=True)
 
     mejor_fila, mejor_score = scored[0]
-    umbral = 0.55
+    umbral = 0.9
 
     if mejor_score >= umbral:
         nivel = _determinar_nivel(mejor_fila)
         mesa  = "Service Desk 1" if nivel == "N1" else "Squad - Mesa Ongoing"
-        res   = mejor_fila.get("Resolución", "") or mejor_fila.get("Resolucion", "")
+        res   = mejor_fila.get("resolucion_referencia", "")
         return RespuestaHistorico(
             encontrado=True,
             ticket_id=consulta.ticket_id,

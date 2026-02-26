@@ -1,14 +1,20 @@
 """
 Agente ESTIMADOR — Puerto 8005
-Estima el tiempo de resolución de un ticket (en horas) usando
-patrones históricos (rule-based por ahora, ML después).
+Estima el tiempo de resolución de un ticket (en horas)
+usando exclusivamente un modelo de ML entrenado (linear_regression.pkl).
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, Any
 from datetime import datetime
+from functools import lru_cache
+from pathlib import Path
+from io import BytesIO
+import pickle
+
+import pandas as pd
 
 app = FastAPI(
     title="Agente Estimador",
@@ -29,12 +35,58 @@ app.add_middleware(
 
 class ConsultaEstimador(BaseModel):
     ticket_id: str
-    tipo_incidencia: str          # "Incidente" | "Solicitud"
-    tipo_atencion_sd: str
+
+    # --- Payload "legacy" (reglas) ---
+    tipo_incidencia: Optional[str] = None          # "Incidente" | "Solicitud"
+    tipo_atencion_sd: Optional[str] = None
     area: Optional[str] = ""
     producto: Optional[str] = ""
     resumen: Optional[str] = ""
     urgencia_detectada: Optional[str] = "media"   # "alta" | "media"
+
+    # --- Payload del modelo entrenado (según el ejemplo del usuario) ---
+    tipoIncidencia: Optional[str] = Field(default=None)
+    tipoAtencionSD: Optional[str] = Field(default=None)
+    clasificacion: Optional[str] = Field(default=None)
+    productoSD: Optional[str] = Field(default=None)
+    impactaCierre: Optional[str] = Field(default=None)
+    informador: Optional[str] = Field(default=None)
+    aplicativo: Optional[str] = Field(default=None)
+    hora_creacion: Optional[int] = Field(default=None, ge=0, le=23)
+    dia_semana: Optional[int] = Field(default=None, ge=0, le=6)  # lunes=0 ... domingo=6
+    mes_creacion: Optional[int] = Field(default=None, ge=1, le=12)
+    anio_creacion: Optional[int] = Field(default=None, ge=2000, le=2100)
+    fecha_creacion: Optional[datetime] = Field(default=None)
+
+    def to_ml_features(self) -> dict[str, Any]:
+        """
+        Normaliza el request al esquema esperado por el modelo entrenado.
+
+        - Acepta campos camelCase (ejemplo) y completa campos temporales si faltan.
+        - El modelo espera los nombres EXACTOS de columnas del training.
+        """
+        now = datetime.now()
+        dt = self.fecha_creacion or now
+
+        hora_creacion = self.hora_creacion if self.hora_creacion is not None else dt.hour
+        dia_semana = self.dia_semana if self.dia_semana is not None else dt.weekday()  # lunes=0
+        mes_creacion = self.mes_creacion if self.mes_creacion is not None else dt.month
+        anio_creacion = self.anio_creacion if self.anio_creacion is not None else dt.year
+
+        return {
+            "tipoIncidencia": self.tipoIncidencia or (self.tipo_incidencia or ""),
+            "tipoAtencionSD": self.tipoAtencionSD or (self.tipo_atencion_sd or ""),
+            "area": self.area or "",
+            "clasificacion": self.clasificacion or "",
+            "productoSD": self.productoSD or (self.producto or ""),
+            "impactaCierre": self.impactaCierre or "",
+            "informador": self.informador or "",
+            "aplicativo": self.aplicativo or "",
+            "hora_creacion": int(hora_creacion),
+            "dia_semana": int(dia_semana),
+            "mes_creacion": int(mes_creacion),
+            "anio_creacion": int(anio_creacion),
+        }
 
 class RespuestaEstimador(BaseModel):
     ticket_id: str
@@ -46,126 +98,103 @@ class RespuestaEstimador(BaseModel):
     timestamp: str
 
 # =====================================================
-# Tablas de tiempos base (calculados de DATA2 histórico)
-# Promedio general histórico: ~87h, pero por tipo:
+# Carga de modelo (pickle) + predicción
 # =====================================================
 
-# Tiempos base en horas según tipo de atención (estimados del historial)
-TIEMPOS_BASE_TIPO = {
-    "desafiliacion":             24.0,
-    "actualizacion de datos":    18.0,
-    "alta de corredor":          36.0,
-    "consulta":                  12.0,
-    "solicitud de informacion":  16.0,
-    "emision":                   48.0,
-    "endoso":                    56.0,
-    "anulacion":                 40.0,
-    "reembolso":                 72.0,
-    "siniestro":                 96.0,
-    "error de servidor":        120.0,
-    "error de sistema":         110.0,
-    "error de aplicacion":       90.0,
-    "acceso":                    20.0,
-    "instalacion":               30.0,
-    "configuracion":             48.0,
-    "integracion":              144.0,
-    "reporte":                   36.0,
-    "factura":                   48.0,
-    "planilla":                  60.0,
-    "conciliacion":              72.0,
-    "default":                   87.0,   # promedio histórico general
-}
-
-# Multiplicadores por tipo de incidencia
-MULT_TIPO_INCIDENCIA = {
-    "incidente":  1.3,   # Incidentes suelen ser más complejos/urgentes
-    "solicitud":  0.85,
-    "default":    1.0,
-}
-
-# Palabras críticas en resumen que aumentan el tiempo estimado
-PALABRAS_CRITIC = [
-    "masivo", "todos", "100%", "caido", "caído", "sin servicio",
-    "produccion", "producción", "bloqueado", "critico", "crítico"
-]
-
-# =====================================================
-# Lógica de estimación
-# =====================================================
-
-def _tiempo_base(tipo_sd: str) -> tuple:
-    """Retorna (horas_base, descripcion)."""
-    t = tipo_sd.strip().lower()
-    for key, horas in TIEMPOS_BASE_TIPO.items():
-        if key in t:
-            return horas, key
-    return TIEMPOS_BASE_TIPO["default"], "default"
+def _model_path() -> Path:
+    # .../proyecto/agents/estimador/main.py -> .../proyecto/models/linear_regression.pkl
+    return Path(__file__).resolve().parents[2] / "models" / "linear_regression.pkl"
 
 
-def estimar_tiempo(consulta: ConsultaEstimador) -> dict:
+def _dummy_predict(*_args: Any, **_kwargs: Any):
+    raise RuntimeError("predict stub (replaced after loading artefact)")
+
+
+class _ArtefactUnpickler(pickle.Unpickler):
     """
-    Calcula el tiempo estimado de resolución con factores ajustadores.
-
-    Factores:
-      1. Tiempo base del tipo de atención SD
-      2. Tipo de incidencia (Incidente → +30%)
-      3. Urgencia alta (detectada en resumen → -20%, se resuelve más rápido por prioridad)
-      4. Palabras críticas en resumen (afectan a más personas → +40%)
-      5. Producto de alta complejidad (SCTR, Vida Ley → +25%)
+    El artefacto fue serializado con una referencia a `__main__.predict`.
+    En producción (FastAPI) ese símbolo no existe; lo stubeamos para
+    que el unpickle complete y luego reemplazamos `artefact['predict']`.
     """
-    horas_base, tipo_usado = _tiempo_base(consulta.tipo_atencion_sd)
-    factores = [f"Tipo '{tipo_usado}' → base {horas_base}h"]
 
-    multiplicador = 1.0
+    def find_class(self, module: str, name: str):
+        if module == "__main__" and name == "predict":
+            return _dummy_predict
+        return super().find_class(module, name)
 
-    # Factor 1: tipo de incidencia
-    tipo_inc = consulta.tipo_incidencia.strip().lower()
-    mult_inc = MULT_TIPO_INCIDENCIA.get(tipo_inc, MULT_TIPO_INCIDENCIA["default"])
-    if mult_inc != 1.0:
-        multiplicador *= mult_inc
-        factores.append(f"Tipo incidencia '{tipo_inc}' → ×{mult_inc}")
 
-    # Factor 2: urgencia alta → se prioriza, se resuelve antes
-    if consulta.urgencia_detectada == "alta":
-        multiplicador *= 0.80
-        factores.append("Urgencia alta detectada → ×0.80 (mayor prioridad)")
+@lru_cache(maxsize=1)
+def _load_artefact() -> dict[str, Any]:
+    path = _model_path()
+    if not path.exists():
+        raise FileNotFoundError(f"No existe el modelo: {path}")
 
-    # Factor 3: palabras críticas en resumen
-    resumen_lower = (consulta.resumen or "").lower()
-    palabras_crit_encontradas = [p for p in PALABRAS_CRITIC if p in resumen_lower]
-    if palabras_crit_encontradas:
-        multiplicador *= 1.40
-        factores.append(f"Palabras críticas: {palabras_crit_encontradas} → ×1.40")
+    artefact = _ArtefactUnpickler(BytesIO(path.read_bytes())).load()
+    if not isinstance(artefact, dict) or "pipeline" not in artefact:
+        raise ValueError("Artefacto inválido: se esperaba dict con key 'pipeline'.")
 
-    # Factor 4: productos de alta complejidad técnica
-    prod = (consulta.producto or "").lower()
-    if any(p in prod for p in ["sctr", "vida ley", "vida individual"]):
-        multiplicador *= 1.25
-        factores.append(f"Producto '{prod}' alta complejidad → ×1.25")
+    pipeline = artefact["pipeline"]
+    target_inverse_fn = artefact.get("target_inverse_fn")
+    features_cat = artefact.get("features_cat") or []
+    features_num = artefact.get("features_num") or []
+    features_all = artefact.get("features_all") or []
+    dummy_columns = artefact.get("dummy_columns") or []
+    model_name = artefact.get("model_name", "linear_regression.pkl")
 
-    horas_final = round(horas_base * multiplicador, 1)
+    def predict(payload: Any):
+        if isinstance(payload, dict):
+            df = pd.DataFrame([payload])
+            single = True
+        elif isinstance(payload, pd.DataFrame):
+            df = payload
+            single = False
+        else:
+            raise TypeError("payload debe ser dict o pandas.DataFrame")
 
-    # Rango de incertidumbre ±25%
-    rango_min = round(horas_final * 0.75, 1)
-    rango_max = round(horas_final * 1.25, 1)
+        # El pipeline del artefacto contiene solo el modelo; el encoding se hace aquí
+        # usando las columnas dummy del entrenamiento.
+        if features_all:
+            for col in features_all:
+                if col not in df.columns:
+                    df[col] = "" if col in features_cat else 0
+            df = df[features_all]
 
-    # Categoría
-    if horas_final < 24:
-        categoria = "rapido"
-    elif horas_final < 72:
-        categoria = "normal"
-    elif horas_final < 168:
-        categoria = "lento"
-    else:
-        categoria = "muy_lento"
+        if features_cat:
+            df_cat = df[features_cat].fillna("").astype(str)
+        else:
+            df_cat = pd.DataFrame(index=df.index)
 
-    return {
-        "tiempo_estimado_horas": horas_final,
-        "rango_minimo_horas":    rango_min,
-        "rango_maximo_horas":    rango_max,
-        "categoria_tiempo":      categoria,
-        "factores_aplicados":    factores,
-    }
+        if features_num:
+            df_num = df[features_num].apply(pd.to_numeric, errors="coerce").fillna(0)
+        else:
+            df_num = pd.DataFrame(index=df.index)
+
+        df_base = pd.concat([df_cat, df_num], axis=1)
+        X = pd.get_dummies(df_base, columns=features_cat) if features_cat else df_base
+        if dummy_columns:
+            X = X.reindex(columns=dummy_columns, fill_value=0)
+
+        y = pipeline.predict(X)
+        if target_inverse_fn is not None:
+            y = target_inverse_fn(y)
+
+        if single:
+            return float(y[0])
+        return [float(v) for v in y]
+
+    artefact["predict"] = predict
+    artefact["model_name"] = model_name
+    return artefact
+
+
+def _categoria_tiempo(horas: float) -> str:
+    if horas < 24:
+        return "rapido"
+    if horas < 72:
+        return "normal"
+    if horas < 168:
+        return "lento"
+    return "muy_lento"
 
 # =====================================================
 # Endpoints
@@ -180,9 +209,33 @@ async def health():
 async def estimar(consulta: ConsultaEstimador):
     """
     Estima el tiempo de resolución del ticket en horas.
-    Basado en patrones históricos del CSV de JIRA (reglas por ahora, ML pendiente).
+    Basado exclusivamente en el modelo de ML entrenado (linear_regression.pkl).
     """
-    resultado = estimar_tiempo(consulta)
+    try:
+        artefact = _load_artefact()
+        features = consulta.to_ml_features()
+        pred_horas = float(artefact["predict"](features))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"No se pudo estimar con el modelo de ML: {e}",
+        )
+
+    horas_final = round(pred_horas, 2)
+    rango_min = round(horas_final * 0.75, 2)
+    rango_max = round(horas_final * 1.25, 2)
+    categoria = _categoria_tiempo(horas_final)
+
+    resultado = {
+        "tiempo_estimado_horas": horas_final,
+        "rango_minimo_horas": rango_min,
+        "rango_maximo_horas": rango_max,
+        "categoria_tiempo": categoria,
+        "factores_aplicados": [
+            f"ML: {artefact.get('model_name','linear_regression')}",
+        ],
+    }
+
     return RespuestaEstimador(
         ticket_id=consulta.ticket_id,
         **resultado,
