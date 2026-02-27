@@ -55,30 +55,24 @@ class ComplejidadResponse(BaseModel):
 # =====================================================
 
 # Tipos de atención SD → puntaje base (incidentes técnicos puntúan más alto)
-PUNTAJE_TIPO_ATENCION = {
-    "consulta":              10,
-    "solicitud de info":     10,
-    "actualizacion":         15,
-    "desafiliacion":         15,
-    "alta de corredor":      20,
-    "acceso":                20,
-    "emision":               30,
-    "endoso":                30,
-    "anulacion":             30,
-    "reembolso":             40,
-    "siniestro":             45,
-    "error de aplicacion":   50,
-    "error de sistema":      60,
-    "error de servidor":     65,
-    "integracion":           70,
-    "configuracion":         35,
-}
+PUNTAJE_TIPO_ATENCION = [
+    (["cambio", "actualiz", "informaci", "carga"],   10, "cambio/actualización/carga"),
+    (["facturaci"],                                  27, "facturación"),
+    (["generaci", "nc"],                             25, "generación NC"),
+    (["interfaz"],                                   15, "interfaz"),
+    (["conciliaci"],                                 20, "conciliación"),
+    (["correcci"],                                   10, "corrección"),
+    (["tachito", "reversa"],                         30, "tachito/reverso"),
+    (["anulaci"],                                    45, "anulación"),
+    (["error"],                                      45, "error"),
+    (["sanitas"],                                    50, "sanitas"),
+]
 
 # Área del ticket → ajuste de puntaje
 PUNTAJE_AREA = {
-    "cobranzas":                +15,
+    "cobranzas":                +10,
     "analitica y actuarial":    +10,
-    "operaciones":              +5,
+    "operaciones":              +15,
     "tecnica":                  +3,
     "soluciones de clientes":   -3,
     "ti":                       -3,
@@ -89,10 +83,10 @@ PUNTAJE_AREA = {
 }
 
 PUNTAJE_PRODUCTO = {
-    "accidentes personales": +9,
+    "sctr":                  +9,
     "vida ley":              +8,
-    "vida grupo":            +5,
-    "sctr":                  +5,
+    "accidentes personales": +4,   
+    "vida grupo":            +4,
     "soat":                  +3,
 }
 
@@ -129,15 +123,17 @@ def evaluar_complejidad(ticket: TicketEvaluacion) -> dict:
         factores["tipo_incidencia"] = "-5 (Solicitud)"
 
     # 2. Tipo de atención SD
-    tipo_sd = ticket.tipo_atencion_sd.strip().lower()
+    tipo_sd = (ticket.tipo_atencion_sd or "").strip().lower()
     pts_tipo = 0
-    for key, pts in PUNTAJE_TIPO_ATENCION.items():
-        if key in tipo_sd:
+    etiqueta_tipo = ""
+    for palabras, pts, etiqueta in PUNTAJE_TIPO_ATENCION:
+        if any(p in tipo_sd for p in palabras):
             pts_tipo = pts
+            etiqueta_tipo = etiqueta
             break
     if pts_tipo:
-        score += pts_tipo - 30  # relativo al base 30
-        factores["tipo_atencion_sd"] = f"{pts_tipo - 30:+d} ('{tipo_sd}')"
+        score += pts_tipo
+        factores["tipo_atencion_sd"] = f"+{pts_tipo} ({etiqueta_tipo}: '{tipo_sd}')"
 
     # 3. Palabras clave en resumen
     resumen = (ticket.resumen or "").lower()
