@@ -160,7 +160,7 @@ async def crear_jira(resultado: dict):
     account = getenv("JIRA_ACCOUNT_ID",  "712020:4891c296-4785-48fc-8dfe-84c7205f6679")
 
     token_b64 = base64.b64encode(f"{email}:{token}".encode()).decode()
-    issue_type = "Bug" if "incidente" in (resultado.get("tipo_incidencia") or "").lower() else "Task"
+    issue_type = "Submit a request or incident" if "incidente" in (resultado.get("tipo_incidencia") or "").lower() else "Ask a question"
     nivel  = resultado.get("nivel_asignado", "N1")
     mesa   = resultado.get("mesa_asignada", "Service Desk 1")
     comp   = resultado.get("complejidad", "media")

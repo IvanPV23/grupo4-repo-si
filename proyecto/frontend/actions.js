@@ -22,7 +22,7 @@ const INFORMANTES = [
     'mmorgan', 'mmorgs', 'mzevillos', 'nhermesn', 'nportugal', 'ocassidio',
     'ohernmesn', 'pmila', 'prianez', 'oriovera', 'orisca', 'rsavia', 'rsagarciac',
     'rsantosdipl', 'soquintero', 'sramirez', 'svalverde', 'syritones',
-    'Usuario Solo', 'zolaberru', 'zestros', 'ytirones'
+    'ccortez', 'zolaberru', 'zestros', 'ytirones','mpuray'
 ].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
 /* ── Searchable Dropdown ── */
@@ -196,10 +196,6 @@ function mostrarResultado(d) {
       <div class="metric">
         <div class="metric-label">Tiempo Estimado</div>
         <div class="metric-value" style="font-size:.88rem;color:var(--blue);">${tiempoStr}</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Vía</div>
-        <div class="metric-value" style="font-size:.85rem;">${via}</div>
       </div>
       <div class="metric">
         <div class="metric-label">Estado</div>

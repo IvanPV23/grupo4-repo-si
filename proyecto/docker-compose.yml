@@ -50,7 +50,7 @@ services:
       - JIRA_API_TOKEN=ATATT3xFfGF094mZSiL3wsQDIAecBwoVhIceEYrv7D4lnqcXWGpeFEqfvOyiOwU9m9JiPzWhgalbeeHxmVZQGHhFqOHG_7tl9sJtDE53tKRZTweBqubABsjNv_QkEfiKfINHKdnw5-hZFFNSziUEKBWeIPp0OISugzEUxdmEAlcT1wryn3ahTFw=848CEDB4
       - JIRA_DOMAIN=jhairrmb3.atlassian.net
       - JIRA_EMAIL=jhairrmb3@gmail.com
-      - JIRA_PROJECT_KEY=SCRUM
+      - JIRA_PROJECT_KEY=SOP
       - JIRA_ACCOUNT_ID=712020:4891c296-4785-48fc-8dfe-84c7205f6679
     volumes:
       - ./api:/app/api
