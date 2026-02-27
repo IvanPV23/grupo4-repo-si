@@ -91,26 +91,6 @@ PALABRAS_BAJA_COMPLEJIDAD = [
     (r"\b(actualizar? datos|cambiar? correo)\b",         -10, "actualización simple"),
 ]
 
-PUNTAJE_AREA = {
-    "cobranzas":                +15,
-    "analitica y actuarial":    +10,
-    "operaciones":              +5,
-    "tecnica":                  +3,
-    "soluciones de clientes":   -3,
-    "ti":                       -3,
-    "siniestros":               -5,
-    "comercial masivos":        -8,
-    "cultura organizacional":   -12,
-    "marketing":                -15,
-}
-
-PUNTAJE_PRODUCTO = {
-    "accidentes personales": +9,
-    "vida ley":              +8,
-    "vida grupo":            +5,
-    "sctr":                  +5,
-    "soat":                  +3,
-}
 
 def evaluar_complejidad(ticket: TicketEvaluacion) -> dict:
     """Calcula score de complejidad 0-100 y categoría."""
@@ -168,25 +148,9 @@ def evaluar_complejidad(ticket: TicketEvaluacion) -> dict:
 
     # 6. Producto de alta complejidad técnica
     prod = (ticket.producto or "").lower()
-    pts_prod = 0
-    for key, pts in PUNTAJE_PRODUCTO.items():
-        if key in prod:
-            pts_prod = pts
-            break
-    if pts_prod != 0:
-        score += pts_prod
-        factores["producto"] = f"{pts_prod:+d} (producto: {prod})"
-
-    # 7. Área del ticket
-        area = (ticket.area or "").strip().lower()
-        pts_area = 0
-        for key, pts in PUNTAJE_AREA.items():
-            if key in area:
-                pts_area = pts
-                break
-        if pts_area != 0:
-            score += pts_area
-            factores["area"] = f"{pts_area:+d} (área: {area})"
+    if any(p in prod for p in ["sctr", "vida ley", "vida individual"]):
+        score += 10
+        factores["producto"] = f"+10 (producto complejo: {prod})"
 
     # Clamp 0–100
     score = max(0.0, min(100.0, round(score, 1)))
