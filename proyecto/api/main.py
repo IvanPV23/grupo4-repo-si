@@ -15,6 +15,13 @@ import httpx
 import os
 import json
 import sys
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("api")
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.excel_acumulativo import agregar_fila_reporte, obtener_resumen_reporte
@@ -93,18 +100,22 @@ async def _enviar_a_n8n(ticket_data: dict) -> dict | None:
     n8n ejecuta el pipeline completo de agentes + crea el issue en Jira.
     Retorna el resultado completo (dict) o None si falla.
     """
+    n8n_timeout = float(os.getenv("N8N_TIMEOUT", "120"))
     try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
+        async with httpx.AsyncClient(timeout=n8n_timeout) as client:
             r = await client.post(N8N_WEBHOOK_URL, json=ticket_data)
             if r.status_code in (200, 201):
                 data = r.json()
-                print(f"[n8n] Pipeline completado → {data.get('jira_issue_key', 'sin Jira')}")
+                logger.info(f"[n8n] Pipeline completado → jira={data.get('jira_issue_key', 'sin Jira')}")
                 return data
             else:
-                print(f"[n8n] Error {r.status_code}: {r.text[:200]}")
+                logger.error(f"[n8n] Respuesta inesperada HTTP {r.status_code}: {r.text[:300]}")
                 return None
+    except httpx.TimeoutException as ex:
+        logger.error(f"[n8n] Timeout ({n8n_timeout}s) al llamar {N8N_WEBHOOK_URL}: {ex}")
+        return None
     except Exception as ex:
-        print(f"[n8n] Excepción: {ex}")
+        logger.error(f"[n8n] Excepción al llamar {N8N_WEBHOOK_URL}: {ex}")
         return None
 
 
@@ -219,12 +230,28 @@ async def crear_ticket(ticket: TicketEntrada):
     La API recibe el resultado, guarda en Excel y lo devuelve al frontend.
     """
     # ── 1. Delegar todo a n8n (pipeline + Jira) ────────────────────────
+    # ticket_id se genera aquí y se inyecta en el payload:
+    # TicketWeb no lo tiene como campo, pero todos los agentes lo requieren.
+    ticket_id = _generar_ticket_id()
     ticket_dict = ticket.model_dump()
+    ticket_dict["ticket_id"] = ticket_id
+    logger.info(f"[tickets/nuevo] Enviando ticket {ticket_id} a n8n → {N8N_WEBHOOK_URL}")
     resultado = await _enviar_a_n8n(ticket_dict)
 
     if resultado is None:
         # n8n es el único orquestador válido en este flujo.
-        raise HTTPException(status_code=503, detail="n8n (orquestador) no disponible")
+        logger.error(f"[tickets/nuevo] n8n no retornó resultado válido para ticket. URL: {N8N_WEBHOOK_URL}")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "El orquestador n8n no está disponible o retornó un error. "
+                f"Webhook: {N8N_WEBHOOK_URL}. "
+                "Verifique que el contenedor n8n esté activo y el workflow 'Orquestador Central — Derivacion v3' "
+                "esté importado y activo."
+            ),
+        )
+
+    logger.info(f"[tickets/nuevo] n8n completó pipeline. via_historico={resultado.get('via_historico')}")
 
     # ── 2. Guardar en Excel acumulativo ─────────────────────────────
     from utils.excel_acumulativo import agregar_fila_reporte
@@ -278,11 +305,14 @@ async def descargar_reporte():
     """Descarga el Excel acumulativo de derivaciones."""
     from utils.excel_acumulativo import RUTA_REPORTE
     if not os.path.exists(RUTA_REPORTE):
-        raise HTTPException(status_code=404, detail="No hay reporte generado aún. Envía algún ticket primero.")
+        raise HTTPException(
+            status_code=404,
+            detail="No hay reporte generado aún. Envía algún ticket primero.",
+        )
     return FileResponse(
         path=RUTA_REPORTE,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename="reporte_acumulativo.xlsx"
+        filename="reporte_acumulativo.xlsx",
     )
 
 

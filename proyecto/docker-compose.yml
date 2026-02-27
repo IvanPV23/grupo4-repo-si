@@ -107,6 +107,7 @@ services:
       - AGENT_PORT=8005
     volumes:
       - ./agents/estimador:/app/agents/estimador
+      - ./models:/app/models
       - ./data:/app/data
     networks:
       - tickets-network

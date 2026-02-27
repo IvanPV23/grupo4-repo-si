@@ -21,7 +21,7 @@
         "url": "http://agente-historico:8004/consultar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ ticket_id: ($json.body || $json).ticket_id || 'TK-N8N', resumen: ($json.body || $json).resumen || '', tipo_atencion_sd: ($json.body || $json).tipo_atencion_sd || '', area: ($json.body || $json).area || '', producto: ($json.body || $json).producto || '' }) }}",
+        "jsonBody": "={{ JSON.stringify({ ticket_id: ($json.body || $json).ticket_id, resumen: ($json.body || $json).resumen || '', tipo_atencion_sd: ($json.body || $json).tipo_atencion_sd || '', area: ($json.body || $json).area || '', producto: ($json.body || $json).producto || '' }) }}",
         "options": { "timeout": 15000 }
       },
       "id": "http-historico-v3-002",
@@ -35,7 +35,7 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{ $json.via_historico  === true && $json.confianza_similitud >= 0.8 }}"
+              "value1": "={{ $json.encontrado === true }}"
             }
           ]
         }
@@ -45,6 +45,16 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [520, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Rama: histórico encontró antecedente. Payload orquestador sin Estimador/Complejidad.\nconst ticket = $node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json;\nconst hist = $node[\"2. Histórico\"].json;\nreturn [{ json: { ticket_id: ticket.ticket_id || 'TK-N8N', tipo_incidencia: ticket.tipo_incidencia || '', tipo_atencion_sd: ticket.tipo_atencion_sd || '', area: ticket.area || '', producto: ticket.producto || '', resumen: ticket.resumen || '', informador: ticket.informador || '', aplicativo: ticket.aplicativo || '', urgencia_detectada: 'media', tiempo_estimado_horas: null, categoria_tiempo: '', complejidad: 'media', score_complejidad: 50, nivel_recomendado: 'N1', via_historico: true, mesa_historico: hist.mesa_sugerida || null, resolucion_referencia: hist.resolucion_referencia || null } }];\n"
+      },
+      "id": "code-payload-orq-historico",
+      "name": "4a. Payload Orquestador (via histórico)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 320]
     },
     {
       "parameters": {
@@ -78,18 +88,28 @@
     },
     {
       "parameters": {
+        "jsCode": "// Rama: pipeline completo. Payload orquestador con Estimador + Complejidad.\nconst ticket = $node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json;\nconst hist = $node[\"2. Histórico\"].json;\nconst est = $node[\"4. Estimador (ML)\"].json;\nconst comp = $node[\"5. Complejidad\"].json;\nreturn [{ json: { ticket_id: ticket.ticket_id || 'TK-N8N', tipo_incidencia: ticket.tipo_incidencia || '', tipo_atencion_sd: ticket.tipo_atencion_sd || '', area: ticket.area || '', producto: ticket.producto || '', resumen: ticket.resumen || '', informador: ticket.informador || '', aplicativo: ticket.aplicativo || '', urgencia_detectada: 'media', tiempo_estimado_horas: est.tiempo_estimado_horas ?? null, categoria_tiempo: est.categoria_tiempo || '', complejidad: comp.complejidad || 'media', score_complejidad: comp.score ?? 50, nivel_recomendado: comp.nivel_recomendado || 'N1', via_historico: hist.encontrado || false, mesa_historico: hist.mesa_sugerida || null, resolucion_referencia: hist.resolucion_referencia || null } }];\n"
+      },
+      "id": "code-payload-orq-pipeline",
+      "name": "5b. Payload Orquestador (via pipeline)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 80]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "http://agente-orquestador:8003/asignar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ ticket_id: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).ticket_id || 'TK-N8N', tipo_incidencia: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_incidencia || '', tipo_atencion_sd: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_atencion_sd || '', area: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).area || '', producto: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).producto || '', resumen: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).resumen || '', informador: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).informador || '', urgencia_detectada: 'media', tiempo_estimado_horas: $node[\"4. Estimador (ML)\"]?.json?.tiempo_estimado_horas || null, categoria_tiempo: $node[\"4. Estimador (ML)\"]?.json?.categoria_tiempo || '', complejidad: $node[\"5. Complejidad\"]?.json?.complejidad || 'media', score_complejidad: $node[\"5. Complejidad\"]?.json?.score || 50.0, nivel_recomendado: $node[\"5. Complejidad\"]?.json?.nivel_recomendado || 'N1', via_historico: $node[\"2. Histórico\"].json.encontrado || false, mesa_historico: $node[\"2. Histórico\"].json.mesa_sugerida || null, resolucion_referencia: $node[\"2. Histórico\"].json.resolucion_referencia || null }) }}",
+        "jsonBody": "={{ JSON.stringify($json) }}",
         "options": { "timeout": 15000 }
       },
       "id": "http-orquestador-v3-006",
       "name": "6. Orquestador",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [1300, 200]
+      "position": [1560, 200]
     },
     {
       "parameters": {
@@ -97,53 +117,41 @@
         "url": "http://sistema-tickets-api:8000/jira/crear",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($node[\"6. Orquestador\"].json) }}",
+        "jsonBody": "={{ JSON.stringify($json) }}",
         "options": { "timeout": 20000 }
       },
       "id": "http-jira-python-v3-007",
       "name": "7. Crear Issue JIRA (Python)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [1560, 200]
+      "position": [1820, 200]
     },
     {
       "parameters": {
-        "jsCode": "const jira = $input.first().json;\nconst orq = $('6. Orquestador').item.json;\n\nreturn [{\n  json: {\n    ticket_id:            orq.ticket_id,\n    mesa_asignada:        orq.mesa_asignada,\n    nivel_asignado:       orq.nivel_asignado,\n    en_cola:              orq.en_cola || false,\n    complejidad:          orq.complejidad,\n    score_complejidad:    orq.score_complejidad,\n    tiempo_estimado_horas: orq.tiempo_estimado_horas,\n    categoria_tiempo:     orq.categoria_tiempo,\n    via_historico:        orq.via_historico || false,\n    razonamiento:         orq.razonamiento,\n    resumen:              orq.resumen,\n    tipo_incidencia:      orq.tipo_incidencia,\n    tipo_atencion_sd:     orq.tipo_atencion_sd,\n    area:                 orq.area,\n    producto:             orq.producto || '',\n    aplicativo:           orq.aplicativo || '',\n    informador:           orq.informador || '',\n    urgencia_detectada:   orq.urgencia_detectada || '',\n    jira_issue_key:       jira.jira_issue_key || null,\n    jira_url:             jira.jira_url || null,\n    timestamp:            orq.timestamp\n  }\n}];"
+        "jsCode": "const jira = $input.first().json;\nconst orq = $('6. Orquestador').item.json;\nreturn [{ json: { ticket_id: orq.ticket_id, mesa_asignada: orq.mesa_asignada, nivel_asignado: orq.nivel_asignado, en_cola: orq.en_cola || false, complejidad: orq.complejidad, score_complejidad: orq.score_complejidad, tiempo_estimado_horas: orq.tiempo_estimado_horas, categoria_tiempo: orq.categoria_tiempo, via_historico: orq.via_historico || false, razonamiento: orq.razonamiento, resumen: orq.resumen, tipo_incidencia: orq.tipo_incidencia, tipo_atencion_sd: orq.tipo_atencion_sd, area: orq.area, producto: orq.producto || '', aplicativo: orq.aplicativo || '', informador: orq.informador || '', urgencia_detectada: orq.urgencia_detectada || '', jira_issue_key: jira.jira_issue_key || null, jira_url: jira.jira_url || null, timestamp: orq.timestamp } }];\n"
       },
       "id": "code-respuesta-v3-008",
       "name": "8. Armar Respuesta Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1820, 200]
+      "position": [2080, 200]
     }
   ],
   "connections": {
-    "1. Recibir Ticket": {
-      "main": [[{ "node": "2. Histórico", "type": "main", "index": 0 }]]
-    },
-    "2. Histórico": {
-      "main": [[{ "node": "3. ¿Hay antecedente?", "type": "main", "index": 0 }]]
-    },
+    "1. Recibir Ticket": { "main": [[{ "node": "2. Histórico", "type": "main", "index": 0 }]] },
+    "2. Histórico": { "main": [[{ "node": "3. ¿Hay antecedente?", "type": "main", "index": 0 }]] },
     "3. ¿Hay antecedente?": {
       "main": [
-        [{ "node": "6. Orquestador", "type": "main", "index": 0 }],
+        [{ "node": "4a. Payload Orquestador (via histórico)", "type": "main", "index": 0 }],
         [{ "node": "4. Estimador (ML)", "type": "main", "index": 0 }]
       ]
     },
-    "4. Estimador (ML)": {
-      "main": [[{ "node": "5. Complejidad", "type": "main", "index": 0 }]]
-    },
-    "5. Complejidad": {
-      "main": [[{ "node": "6. Orquestador", "type": "main", "index": 0 }]]
-    },
-    "6. Orquestador": {
-      "main": [[{ "node": "7. Crear Issue JIRA (Python)", "type": "main", "index": 0 }]]
-    },
-    "7. Crear Issue JIRA (Python)": {
-      "main": [[{ "node": "8. Armar Respuesta Final", "type": "main", "index": 0 }]]
-    }
+    "4a. Payload Orquestador (via histórico)": { "main": [[{ "node": "6. Orquestador", "type": "main", "index": 0 }]] },
+    "4. Estimador (ML)": { "main": [[{ "node": "5. Complejidad", "type": "main", "index": 0 }]] },
+    "5. Complejidad": { "main": [[{ "node": "5b. Payload Orquestador (via pipeline)", "type": "main", "index": 0 }]] },
+    "5b. Payload Orquestador (via pipeline)": { "main": [[{ "node": "6. Orquestador", "type": "main", "index": 0 }]] },
+    "6. Orquestador": { "main": [[{ "node": "7. Crear Issue JIRA (Python)", "type": "main", "index": 0 }]] },
+    "7. Crear Issue JIRA (Python)": { "main": [[{ "node": "8. Armar Respuesta Final", "type": "main", "index": 0 }]] }
   },
-  "settings": {
-    "executionOrder": "v1"
-  }
+  "settings": { "executionOrder": "v1" }
 }

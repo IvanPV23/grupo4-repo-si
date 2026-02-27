@@ -256,7 +256,7 @@ async def consultar_historico(consulta: ConsultaHistorico):
             razonamiento=f"Se encontró ticket similar con similitud={mejor_score}...",
             timestamp=datetime.now().isoformat(),
             via_historico=True,
-            tipo_incidencia=consulta.resumen,
+            tipo_incidencia="",  # ConsultaHistorico no expone tipo_incidencia
             tipo_atencion_sd=consulta.tipo_atencion_sd,
             area=consulta.area,
             producto=consulta.producto or "",

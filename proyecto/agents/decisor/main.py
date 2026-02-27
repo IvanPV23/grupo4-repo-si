@@ -142,6 +142,7 @@ class SolicitudOrquestador(BaseModel):
     producto: Optional[str] = ""
     resumen: Optional[str] = ""
     informador: Optional[str] = ""
+    aplicativo: Optional[str] = ""
     urgencia_detectada: Optional[str] = "media"
     # Del Estimador
     tiempo_estimado_horas: Optional[float] = None
@@ -168,6 +169,15 @@ class RespuestaOrquestador(BaseModel):
     resolucion_referencia: Optional[str] = None
     razonamiento: str
     timestamp: str
+    # Campos del ticket (para Jira y respuesta unificada)
+    resumen: Optional[str] = ""
+    tipo_incidencia: Optional[str] = ""
+    tipo_atencion_sd: Optional[str] = ""
+    area: Optional[str] = ""
+    producto: Optional[str] = ""
+    aplicativo: Optional[str] = ""
+    informador: Optional[str] = ""
+    urgencia_detectada: Optional[str] = "media"
 
 # =====================================================
 # Endpoints
@@ -261,7 +271,15 @@ async def asignar(solicitud: SolicitudOrquestador):
                     f"{razon}"
                 )
             ),
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            resumen=solicitud.resumen or "",
+            tipo_incidencia=solicitud.tipo_incidencia or "",
+            tipo_atencion_sd=solicitud.tipo_atencion_sd or "",
+            area=solicitud.area or "",
+            producto=solicitud.producto or "",
+            aplicativo=solicitud.aplicativo or "",
+            informador=solicitud.informador or "",
+            urgencia_detectada=solicitud.urgencia_detectada or "media",
         )
 
     except Exception as e:
