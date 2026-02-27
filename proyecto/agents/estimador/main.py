@@ -1,7 +1,7 @@
 """
 Agente ESTIMADOR — Puerto 8005
 Estima el tiempo de resolución de un ticket (en horas)
-usando exclusivamente un modelo de ML entrenado (modelo.pkl).
+usando exclusivamente un modelo de ML entrenado (linear_regression.pkl).
 """
 
 from fastapi import FastAPI, HTTPException
@@ -57,7 +57,6 @@ class ConsultaEstimador(BaseModel):
     mes_creacion: Optional[int] = Field(default=None, ge=1, le=12)
     anio_creacion: Optional[int] = Field(default=None, ge=2000, le=2100)
     fecha_creacion: Optional[datetime] = Field(default=None)
-   
 
     def to_ml_features(self) -> dict[str, Any]:
         """
@@ -87,7 +86,6 @@ class ConsultaEstimador(BaseModel):
             "dia_semana": int(dia_semana),
             "mes_creacion": int(mes_creacion),
             "anio_creacion": int(anio_creacion),
-            "resumen": self.resumen or "",
         }
 
 class RespuestaEstimador(BaseModel):
@@ -104,8 +102,8 @@ class RespuestaEstimador(BaseModel):
 # =====================================================
 
 def _model_path() -> Path:
-    # .../proyecto/agents/estimador/main.py -> .../proyecto/models/modelo.pkl
-    return Path(__file__).resolve().parents[2] / "models" / "modelo.pkl"
+    # .../proyecto/agents/estimador/main.py -> .../proyecto/models/linear_regression.pkl
+    return Path(__file__).resolve().parents[2] / "models" / "linear_regression.pkl"
 
 
 def _dummy_predict(*_args: Any, **_kwargs: Any):
@@ -141,7 +139,7 @@ def _load_artefact() -> dict[str, Any]:
     features_num = artefact.get("features_num") or []
     features_all = artefact.get("features_all") or []
     dummy_columns = artefact.get("dummy_columns") or []
-    model_name = artefact.get("model_name", "modelo.pkl")
+    model_name = artefact.get("model_name", "linear_regression.pkl")
 
     def predict(payload: Any):
         if isinstance(payload, dict):
@@ -211,7 +209,7 @@ async def health():
 async def estimar(consulta: ConsultaEstimador):
     """
     Estima el tiempo de resolución del ticket en horas.
-    Basado exclusivamente en el modelo de ML entrenado (modelo.pkl).
+    Basado exclusivamente en el modelo de ML entrenado (linear_regression.pkl).
     """
     try:
         artefact = _load_artefact()
@@ -234,7 +232,7 @@ async def estimar(consulta: ConsultaEstimador):
         "rango_maximo_horas": rango_max,
         "categoria_tiempo": categoria,
         "factores_aplicados": [
-            f"ML: {artefact.get('model_name','modelo.pkl')}",
+            f"ML: {artefact.get('model_name','linear_regression')}",
         ],
     }
 
