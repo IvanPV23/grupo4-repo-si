@@ -21,7 +21,7 @@
         "url": "http://agente-historico:8004/consultar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ ticket_id: ($json.body || $json).ticket_id, resumen: ($json.body || $json).resumen || '', tipo_atencion_sd: ($json.body || $json).tipo_atencion_sd || '', area: ($json.body || $json).area || '', producto: ($json.body || $json).producto || '' }) }}",
+        "jsonBody": "={{ JSON.stringify({ ticket_id: ($json.body || $json).ticket_id, resumen: ($json.body || $json).resumen || '', tipo_atencion_sd: ($json.body || $json).tipo_atencion_sd || '', area: ($json.body || $json).area || '', producto: ($json.body || $json).producto || '', tipo_incidencia: ($json.body || $json).tipo_incidencia || '', informador: ($json.body || $json).informador || '' }) }}",
         "options": { "timeout": 15000 }
       },
       "id": "http-historico-v3-002",

@@ -37,6 +37,8 @@ class ConsultaHistorico(BaseModel):
     tipo_atencion_sd: str
     area: str
     producto: Optional[str] = ""
+    tipo_incidencia: Optional[str] = None
+    informador: Optional[str] = None
 
 
 class RespuestaHistorico(BaseModel):
@@ -51,19 +53,19 @@ class RespuestaHistorico(BaseModel):
     timestamp: str
     
     via_historico: bool = False  
-    tipo_incidencia: str = ""
-    tipo_atencion_sd: str = ""
-    area: str = ""
-    producto: str = ""
-    resumen: str = ""
-    informador: str = ""
-    urgencia_detectada: str = "media"
+    tipo_incidencia: Optional[str] = None
+    tipo_atencion_sd: Optional[str] = None
+    area: Optional[str] = None
+    producto: Optional[str] = None
+    resumen: Optional[str] = None
+    informador: Optional[str] = None
+    urgencia_detectada: Optional[str] = "media"
     # Compatibilidad con formato que espera orquestador 
     tiempo_estimado_horas: Optional[float] = None
     categoria_tiempo: Optional[str] = None
-    complejidad: str = "baja"  
-    score_complejidad: float = 25.0 # complejidad baja dado estado resuelto
-    nivel_recomendado: str = "N1"
+    complejidad: Optional[str] = None
+    score_complejidad: Optional[float] = None
+    nivel_recomendado: Optional[str] = None
 
 # =====================================================
 # Lógica de búsqueda
@@ -256,12 +258,12 @@ async def consultar_historico(consulta: ConsultaHistorico):
             razonamiento=f"Se encontró ticket similar con similitud={mejor_score}...",
             timestamp=datetime.now().isoformat(),
             via_historico=True,
-            tipo_incidencia="",  # ConsultaHistorico no expone tipo_incidencia
+            tipo_incidencia=consulta.tipo_incidencia or "",
             tipo_atencion_sd=consulta.tipo_atencion_sd,
             area=consulta.area,
             producto=consulta.producto or "",
             resumen=consulta.resumen,
-            informador="",  
+            informador=consulta.informador or "",
             urgencia_detectada="media",  # Valor por defecto
         )
 
@@ -275,11 +277,15 @@ async def consultar_historico(consulta: ConsultaHistorico):
         timestamp=datetime.now().isoformat(),
         # ⭐ NUEVOS CAMPOS
         via_historico=False,
-        tipo_incidencia=consulta.resumen,
+        tipo_incidencia=consulta.tipo_incidencia or "",
         tipo_atencion_sd=consulta.tipo_atencion_sd,
         area=consulta.area,
         producto=consulta.producto or "",
         resumen=consulta.resumen,
+        informador=consulta.informador or "",
+        # Dejar complejidad/score pendientes para el agente de complejidad
+        complejidad=None,
+        score_complejidad=None,
     )
 
 
