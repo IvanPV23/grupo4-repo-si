@@ -21,8 +21,7 @@ python-dateutil==2.8.2        # Manejo de fechas
 
 # ---- ML (modelo estimador) ----
 # El artefacto `models/linear_regression.pkl` fue entrenado con scikit-learn
-# y usa LightGBM dentro del pipeline. Necesita numpy para el cálculo numérico.
-numpy==1.25.2
+# y usa LightGBM dentro del pipeline.
 scikit-learn==1.6.1
 lightgbm==4.6.0
 

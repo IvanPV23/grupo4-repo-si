@@ -13,8 +13,6 @@ from functools import lru_cache
 from pathlib import Path
 from io import BytesIO
 import pickle
-import sys
-
 
 import pandas as pd
 
