@@ -47,7 +47,6 @@ services:
       - AGENTE_ESTIMADOR_URL=http://agente-estimador:8005
       - AGENTE_COMPLEJIDAD_URL=http://agente-complejidad:8001
       - AGENTE_ORQUESTADOR_URL=http://agente-orquestador:8003
-      - N8N_WEBHOOK_URL=http://n8n:5678/webhook-test/derivar
       - JIRA_API_TOKEN=ATATT3xFfGF094mZSiL3wsQDIAecBwoVhIceEYrv7D4lnqcXWGpeFEqfvOyiOwU9m9JiPzWhgalbeeHxmVZQGHhFqOHG_7tl9sJtDE53tKRZTweBqubABsjNv_QkEfiKfINHKdnw5-hZFFNSziUEKBWeIPp0OISugzEUxdmEAlcT1wryn3ahTFw=848CEDB4
       - JIRA_DOMAIN=jhairrmb3.atlassian.net
       - JIRA_EMAIL=jhairrmb3@gmail.com

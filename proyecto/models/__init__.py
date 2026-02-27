@@ -10,4 +10,4 @@ from .ticket import (
 __all__ = [
     'TicketWeb',
     'TicketJiraFeatures'
-]
+] 

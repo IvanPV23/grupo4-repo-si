@@ -35,7 +35,7 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{ $json.encontrado === true && $json.confianza_similitud >= 0.55 }}"
+              "value1": "={{ $json.via_historico  === true && $json.confianza_similitud >= 0.8 }}"
             }
           ]
         }
@@ -82,7 +82,7 @@
         "url": "http://agente-orquestador:8003/asignar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ ticket_id: (($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json) || {}).ticket_id || 'TK-N8N', tipo_incidencia: (($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json) || {}).tipo_incidencia || '', tipo_atencion_sd: (($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json) || {}).tipo_atencion_sd || '', area: (($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json) || {}).area || '', producto: (($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json) || {}).producto || '', resumen: (($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json) || {}).resumen || '', informador: (($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json) || {}).informador || '', urgencia_detectada: 'media', tiempo_estimado_horas: ($node[\"4. Estimador (ML)\"]?.json || {}).tiempo_estimado_horas || null, categoria_tiempo: ($node[\"4. Estimador (ML)\"]?.json || {}).categoria_tiempo || '', complejidad: ($node[\"5. Complejidad\"]?.json || {}).complejidad || 'media', score_complejidad: ($node[\"5. Complejidad\"]?.json || {}).score || 50.0, nivel_recomendado: ($node[\"5. Complejidad\"]?.json || {}).nivel_recomendado || 'N1', via_historico: ($node[\"2. Histórico\"]?.json || {}).encontrado || false, mesa_historico: ($node[\"2. Histórico\"]?.json || {}).mesa_sugerida || null, resolucion_referencia: ($node[\"2. Histórico\"]?.json || {}).resolucion_referencia || null }) }}",
+        "jsonBody": "={{ JSON.stringify({ ticket_id: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).ticket_id || 'TK-N8N', tipo_incidencia: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_incidencia || '', tipo_atencion_sd: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_atencion_sd || '', area: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).area || '', producto: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).producto || '', resumen: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).resumen || '', informador: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).informador || '', urgencia_detectada: 'media', tiempo_estimado_horas: $node[\"4. Estimador (ML)\"]?.json?.tiempo_estimado_horas || null, categoria_tiempo: $node[\"4. Estimador (ML)\"]?.json?.categoria_tiempo || '', complejidad: $node[\"5. Complejidad\"]?.json?.complejidad || 'media', score_complejidad: $node[\"5. Complejidad\"]?.json?.score || 50.0, nivel_recomendado: $node[\"5. Complejidad\"]?.json?.nivel_recomendado || 'N1', via_historico: $node[\"2. Histórico\"].json.encontrado || false, mesa_historico: $node[\"2. Histórico\"].json.mesa_sugerida || null, resolucion_referencia: $node[\"2. Histórico\"].json.resolucion_referencia || null }) }}",
         "options": { "timeout": 15000 }
       },
       "id": "http-orquestador-v3-006",

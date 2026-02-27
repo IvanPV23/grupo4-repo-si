@@ -43,12 +43,27 @@ class RespuestaHistorico(BaseModel):
     encontrado: bool
     ticket_id: str
     similares_encontrados: int
-    nivel_sugerido: Optional[str] = None        # "N1" o "N2"
+    nivel_sugerido: Optional[str] = None
     mesa_sugerida: Optional[str] = None
     resolucion_referencia: Optional[str] = None
     confianza_similitud: float = 0.0
     razonamiento: str
     timestamp: str
+    
+    via_historico: bool = False  
+    tipo_incidencia: str = ""
+    tipo_atencion_sd: str = ""
+    area: str = ""
+    producto: str = ""
+    resumen: str = ""
+    informador: str = ""
+    urgencia_detectada: str = "media"
+    # Compatibilidad con formato que espera orquestador 
+    tiempo_estimado_horas: Optional[float] = None
+    categoria_tiempo: Optional[str] = None
+    complejidad: str = "baja"  
+    score_complejidad: float = 25.0 # complejidad baja dado estado resuelto
+    nivel_recomendado: str = "N1"
 
 # =====================================================
 # Lógica de búsqueda
@@ -224,7 +239,7 @@ async def consultar_historico(consulta: ConsultaHistorico):
     scored.sort(key=lambda x: x[1], reverse=True)
 
     mejor_fila, mejor_score = scored[0]
-    umbral = 0.9
+    umbral = 0.8
 
     if mejor_score >= umbral:
         nivel = _determinar_nivel(mejor_fila)
@@ -238,25 +253,33 @@ async def consultar_historico(consulta: ConsultaHistorico):
             mesa_sugerida=mesa,
             resolucion_referencia=res[:300] if res else "Ticket resuelto sin documentación",
             confianza_similitud=mejor_score,
-            razonamiento=(
-                f"Se encontró ticket similar con similitud={mejor_score}. "
-                f"Tipo coincide: '{consulta.tipo_atencion_sd}'. "
-                f"Se recomienda asignar directamente a {nivel} ({mesa}) "
-                f"siguiendo la resolución anterior."
-            ),
-            timestamp=datetime.now().isoformat()
+            razonamiento=f"Se encontró ticket similar con similitud={mejor_score}...",
+            timestamp=datetime.now().isoformat(),
+            via_historico=True,
+            tipo_incidencia=consulta.resumen,
+            tipo_atencion_sd=consulta.tipo_atencion_sd,
+            area=consulta.area,
+            producto=consulta.producto or "",
+            resumen=consulta.resumen,
+            informador="",  
+            urgencia_detectada="media",  # Valor por defecto
         )
 
+    # Para el caso de NO encontrado:
     return RespuestaHistorico(
         encontrado=False,
         ticket_id=consulta.ticket_id,
         similares_encontrados=0,
         confianza_similitud=mejor_score,
-        razonamiento=(
-            f"No se encontraron antecedentes suficientes (mejor similitud={mejor_score}, "
-            f"umbral={umbral}). Se requiere evaluación completa."
-        ),
-        timestamp=datetime.now().isoformat()
+        razonamiento=f"No se encontraron antecedentes suficientes...",
+        timestamp=datetime.now().isoformat(),
+        # ⭐ NUEVOS CAMPOS
+        via_historico=False,
+        tipo_incidencia=consulta.resumen,
+        tipo_atencion_sd=consulta.tipo_atencion_sd,
+        area=consulta.area,
+        producto=consulta.producto or "",
+        resumen=consulta.resumen,
     )
 
 
