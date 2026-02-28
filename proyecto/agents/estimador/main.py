@@ -12,7 +12,9 @@ from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from io import BytesIO
-import pickle
+import cloudpickle
+import sys
+
 
 import pandas as pd
 
@@ -102,25 +104,9 @@ class RespuestaEstimador(BaseModel):
 # =====================================================
 
 def _model_path() -> Path:
-    # .../proyecto/agents/estimador/main.py -> .../proyecto/models/linear_regression.pkl
-    return Path(__file__).resolve().parents[2] / "models" / "linear_regression.pkl"
+    # .../proyecto/agents/estimador/main.py -> .../proyecto/models/modelo.pkl
+    return Path(__file__).resolve().parents[2] / "models" / "modelo.pkl"
 
-
-def _dummy_predict(*_args: Any, **_kwargs: Any):
-    raise RuntimeError("predict stub (replaced after loading artefact)")
-
-
-class _ArtefactUnpickler(pickle.Unpickler):
-    """
-    El artefacto fue serializado con una referencia a `__main__.predict`.
-    En producción (FastAPI) ese símbolo no existe; lo stubeamos para
-    que el unpickle complete y luego reemplazamos `artefact['predict']`.
-    """
-
-    def find_class(self, module: str, name: str):
-        if module == "__main__" and name == "predict":
-            return _dummy_predict
-        return super().find_class(module, name)
 
 
 @lru_cache(maxsize=1)
@@ -129,7 +115,7 @@ def _load_artefact() -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"No existe el modelo: {path}")
 
-    artefact = _ArtefactUnpickler(BytesIO(path.read_bytes())).load()
+    artefact = cloudpickle.loads(path.read_bytes())
     if not isinstance(artefact, dict) or "pipeline" not in artefact:
         raise ValueError("Artefacto inválido: se esperaba dict con key 'pipeline'.")
 

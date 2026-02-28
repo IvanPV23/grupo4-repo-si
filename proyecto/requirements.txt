@@ -8,6 +8,8 @@ fastapi==0.109.0              # Framework API REST
 uvicorn[standard]==0.27.0     # Servidor ASGI
 pydantic==2.5.3               # Validación de datos
 
+
+
 # ---- HTTP ----
 httpx==0.26.0                 # Cliente HTTP async
 requests==2.31.0              # Cliente HTTP sync
@@ -16,14 +18,15 @@ requests==2.31.0              # Cliente HTTP sync
 openpyxl==3.1.2               # Reporte acumulativo .xlsx
 
 # ---- Data ----
-pandas==2.1.4                 # Lectura de CSV histórico
+pandas>=2.2.0                 # Lectura de CSV histórico
 python-dateutil==2.8.2        # Manejo de fechas
 
 # ---- ML (modelo estimador) ----
 # El artefacto `models/linear_regression.pkl` fue entrenado con scikit-learn
-# y usa LightGBM dentro del pipeline.
+# y usa LightGBM dentro del pipeline. Necesita numpy para el cálculo numérico.
+numpy>=2.0
 scikit-learn==1.6.1
-lightgbm==4.6.0
+lightgbm>=4.3.0
 
 # ---- Utilidades ----
 python-multipart==0.0.6       # Form data en FastAPI
@@ -33,3 +36,11 @@ aiofiles==23.2.1              # Archivos async
 # ---- Testing ----
 pytest==7.4.4
 pytest-asyncio==0.23.3
+
+
+# ----agregado para que funcione el modelo ---
+cloudpickle>=2.2.0
+scipy>=1.11.0
+ftfy>=6.1.0
+mlflow>=2.10.0
+optuna>=3.5.0
