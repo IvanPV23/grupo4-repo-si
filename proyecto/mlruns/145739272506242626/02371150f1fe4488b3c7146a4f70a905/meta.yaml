@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/02371150f1fe4488b3c7146a4f70a905/artifacts
+end_time: 1772161543226
+entry_point_name: ''
+experiment_id: '145739272506242626'
+lifecycle_stage: active
+run_id: 02371150f1fe4488b3c7146a4f70a905
+run_name: LightGBM | np.log
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772161540006
+status: 3
+tags: []
+user_id: mauvyc

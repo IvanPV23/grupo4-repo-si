@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/8709188435804ecda503b614da1a1e8a/artifacts
+end_time: 1772166032274
+entry_point_name: ''
+experiment_id: '145739272506242626'
+lifecycle_stage: active
+run_id: 8709188435804ecda503b614da1a1e8a
+run_name: 'Fase 3: Modelo Final (Ridge)'
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772166031000
+status: 3
+tags: []
+user_id: mauvyc

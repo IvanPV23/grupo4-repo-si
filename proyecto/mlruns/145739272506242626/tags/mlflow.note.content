@@ -1,0 +1,1 @@
+Predicción de horas de resolución de incidencias (PASO 1). 3 modelos evaluados: Ridge, LightGBM, KNN. Preprocesamiento: pd.get_dummies + StandardScaler (Ridge/KNN). Optimización con Optuna (TPE sampler). Métricas: MAE, MAPE, R² en escala original (horas).

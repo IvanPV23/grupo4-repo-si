@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/b56fd0c447eb426aa8f225e61414b1c6/artifacts
+end_time: 1772165555436
+entry_point_name: ''
+experiment_id: '145739272506242626'
+lifecycle_stage: active
+run_id: b56fd0c447eb426aa8f225e61414b1c6
+run_name: 'Fase 1: Baseline'
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772165544508
+status: 3
+tags: []
+user_id: mauvyc

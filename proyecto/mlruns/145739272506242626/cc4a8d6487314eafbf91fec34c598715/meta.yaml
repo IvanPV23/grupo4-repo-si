@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/cc4a8d6487314eafbf91fec34c598715/artifacts
+end_time: 1772167272637
+entry_point_name: ''
+experiment_id: '145739272506242626'
+lifecycle_stage: active
+run_id: cc4a8d6487314eafbf91fec34c598715
+run_name: 'Fase 2: Optuna'
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772167263045
+status: 3
+tags: []
+user_id: mauvyc

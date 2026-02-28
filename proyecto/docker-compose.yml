@@ -47,6 +47,8 @@ services:
       - AGENTE_ESTIMADOR_URL=http://agente-estimador:8005
       - AGENTE_COMPLEJIDAD_URL=http://agente-complejidad:8001
       - AGENTE_ORQUESTADOR_URL=http://agente-orquestador:8003
+      - AGENTE_DASHBOARD_URL=http://agente-dashboard:8006
+      - MLFLOW_PUBLIC_URL=http://localhost:5001
       - JIRA_API_TOKEN=ATATT3xFfGF094mZSiL3wsQDIAecBwoVhIceEYrv7D4lnqcXWGpeFEqfvOyiOwU9m9JiPzWhgalbeeHxmVZQGHhFqOHG_7tl9sJtDE53tKRZTweBqubABsjNv_QkEfiKfINHKdnw5-hZFFNSziUEKBWeIPp0OISugzEUxdmEAlcT1wryn3ahTFw=848CEDB4
       - JIRA_DOMAIN=jhairrmb3.atlassian.net
       - JIRA_EMAIL=jhairrmb3@gmail.com
@@ -105,12 +107,17 @@ services:
     environment:
       - AGENT_NAME=estimador
       - AGENT_PORT=8005
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5001
+      - MLFLOW_EXPERIMENT_NAME=estimador-inferencias
     volumes:
       - ./agents/estimador:/app/agents/estimador
       - ./models:/app/models
       - ./data:/app/data
+      - ./mlruns:/app/mlruns
     networks:
       - tickets-network
+    depends_on:
+      - mlflow-server
     command: uvicorn agents.estimador.main:app --host 0.0.0.0 --port 8005 --reload
 
   # =====================================================
@@ -158,9 +165,66 @@ services:
       - tickets-network
     command: uvicorn agents.decisor.main:app --host 0.0.0.0 --port 8003 --reload
 
+  # =====================================================
+  # MLflow Tracking Server — Puerto 5001
+  # UI + persistencia de runs/artefactos en ./mlruns
+  # Reutiliza Dockerfile.agent (mlflow ya instalado)
+  # =====================================================
+  mlflow-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: sistema-tickets-mlflow
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./mlruns:/app/mlruns
+    networks:
+      - tickets-network
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5001
+      --backend-store-uri file:///app/mlruns
+      --default-artifact-root file:///app/mlruns
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =====================================================
+  # Agente DASHBOARD — Puerto 8006
+  # Sirve datos de gráficos desde SQLite + Excel
+  # =====================================================
+  agente-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agente-dashboard
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      - AGENT_NAME=dashboard
+      - AGENT_PORT=8006
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5001
+    volumes:
+      - ./agents/dashboard:/app/agents/dashboard
+      - ./data:/app/data
+      - ./mlruns:/app/mlruns
+    networks:
+      - tickets-network
+    depends_on:
+      - mlflow-server
+    command: uvicorn agents.dashboard.main:app --host 0.0.0.0 --port 8006 --reload
+
 networks:
   tickets-network:
     driver: bridge
 
 volumes:
   n8n_data:
+  # Nota: mlruns usa bind mount (./mlruns) para acceso directo desde el host.
+  # Para backup: cp -r ./mlruns ./mlruns_backup_$(date +%Y%m%d)

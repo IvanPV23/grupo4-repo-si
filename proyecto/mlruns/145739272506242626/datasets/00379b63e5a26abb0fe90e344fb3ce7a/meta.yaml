@@ -1,0 +1,17 @@
+digest: 496d372d
+name: paso_1_incidencias
+profile: '{"num_rows": 2690, "num_elements": 34970}'
+schema: '{"mlflow_colspec": [{"type": "string", "name": "tipoIncidencia", "required":
+  true}, {"type": "string", "name": "tipoAtencionSD", "required": true}, {"type":
+  "string", "name": "area", "required": true}, {"type": "string", "name": "informador",
+  "required": true}, {"type": "string", "name": "aplicativo", "required": true}, {"type":
+  "string", "name": "clasificacion", "required": true}, {"type": "string", "name":
+  "productoSD", "required": true}, {"type": "string", "name": "impactaCierre", "required":
+  true}, {"type": "integer", "name": "hora_creacion", "required": true}, {"type":
+  "integer", "name": "dia_semana", "required": true}, {"type": "integer", "name":
+  "mes_creacion", "required": true}, {"type": "integer", "name": "anio_creacion",
+  "required": true}, {"type": "double", "name": "target_horas_resolucion", "required":
+  true}]}'
+source: '{"tags": {"mlflow.user": "mauvyc", "mlflow.source.name": "/Users/mauvyc/Library/Python/3.9/lib/python/site-packages/ipykernel_launcher.py",
+  "mlflow.source.type": "LOCAL"}}'
+source_type: code
