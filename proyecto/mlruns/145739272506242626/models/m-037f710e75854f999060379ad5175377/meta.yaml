@@ -1,0 +1,10 @@
+artifact_location: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/models/m-037f710e75854f999060379ad5175377/artifacts
+creation_timestamp: 1772167272708
+experiment_id: '145739272506242626'
+last_updated_timestamp: 1772167273957
+model_id: m-037f710e75854f999060379ad5175377
+model_type: null
+name: modelo_final
+source_run_id: 01397a4396744a358f155d1d46776039
+status: 2
+status_message: null

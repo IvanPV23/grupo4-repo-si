@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/2adafabd152544f191da1d0cfd736dad/artifacts
+end_time: 1772167014163
+entry_point_name: ''
+experiment_id: '145739272506242626'
+lifecycle_stage: active
+run_id: 2adafabd152544f191da1d0cfd736dad
+run_name: Ridge | np.sqrt
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772167014062
+status: 3
+tags: []
+user_id: mauvyc

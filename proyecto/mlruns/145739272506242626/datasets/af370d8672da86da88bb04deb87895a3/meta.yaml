@@ -1,0 +1,364 @@
+digest: f739c3b6
+name: paso_1_incidencias_con_tfidf
+profile: '{"num_rows": 2690, "num_elements": 1008750}'
+schema: '{"mlflow_colspec": [{"type": "double", "name": "tipoIncidencia_Incidente",
+  "required": true}, {"type": "double", "name": "tipoIncidencia_Requerimiento", "required":
+  true}, {"type": "double", "name": "tipoIncidencia_Solicitud", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_ACTIVACI\u00c3\u201cN DE BOT Y REPROCESO",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTIVACI\u00c3\u201cN
+  O CREACI\u00c3\u201cN DE USUARIOS", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_ACTUALIZACI\u00c3\u201cN DE CIIU", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_ACTUALIZACI\u00c3\u201cN DE CUPONES", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_ACTUALIZACI\u00c3\u201cN DE DATOS DE
+  CLIENTES", "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTUALIZACI\u00c3\u201cN
+  DE EMISI\u00c3\u201cN DE SOAT", "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTUALIZACI\u00c3\u201cN
+  DE ESTADO", "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTUALIZACI\u00c3\u201cN
+  DE FECHAS EN C360", "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTUALIZAR
+  DATOS DEL CERTIFICADO", "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTUALIZAR
+  DATOS DEL COMPROBANTE", "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTUALIZAR
+  DATOS DEL SINIESTRO", "required": true}, {"type": "double", "name": "tipoAtencionSD_ACTUALIZAR
+  PRIMAS Y/O COMISIONES", "required": true}, {"type": "double", "name": "tipoAtencionSD_AGENCIAMIENTO",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_AJUSTAR CANTIDAD DE
+  ASEGURADOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_ANULACI\u00c3\u201cN
+  DE COMPROBANTE", "required": true}, {"type": "double", "name": "tipoAtencionSD_ANULACI\u00c3\u201cN
+  DE CUPONES", "required": true}, {"type": "double", "name": "tipoAtencionSD_ANULACI\u00c3\u201cN
+  DE C\u00c3\u201cDIGO DE PAGO", "required": true}, {"type": "double", "name": "tipoAtencionSD_ANULACI\u00c3\u201cN
+  DE MOVIMIENTO", "required": true}, {"type": "double", "name": "tipoAtencionSD_ANULACI\u00c3\u201cN
+  DE P\u00c3\u201cLIZA", "required": true}, {"type": "double", "name": "tipoAtencionSD_ANULACI\u00c3\u201cN
+  DE RECIBOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_ANULACI\u00c3\u201cN
+  Y GENERACI\u00c3\u201cN DE COMPROBANTES", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_ANULAR MOVIMIENTO PENDIENTE EN COTIZACI\u00c3\u201cN", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_CAMBIO COBERTURAS Y/O PRIMAS DE
+  P\u00c3\u201cLIZA Y/O SUMAS ASEGURADAS", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_CAMBIO DE AGENCIAMIENTO", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_CAMBIO DE ESTADO EN LAS COMISIONES", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_CAMBIO DE ESTADO SINIESTRO", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_CAMBIO DE FECHA DE LIQUIDACI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_CAMBIO DE FECHA DE
+  PRELIMINAR", "required": true}, {"type": "double", "name": "tipoAtencionSD_CAMBIO
+  DE FECHA DE VIGENCIA", "required": true}, {"type": "double", "name": "tipoAtencionSD_CAMBIO
+  DE PORCENTAJE DE COMISI\u00c3\u201cN", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_CAMBIO DE TASAS", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_CAMBIO DE VIGENCIA Y GENERACI\u00c3\u201cN DE NC", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_CAMBIO PERIODO PRELIMINAR", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_CARGA DE TRAMA", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_CARGA TRAMA CON FORMATO INCORRECTO",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_CIERRE DEL TICKET",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_CONCILIACI\u00c3\u201cN
+  DE PLANILLA", "required": true}, {"type": "double", "name": "tipoAtencionSD_CONCILIACI\u00c3\u201cN
+  MANUAL", "required": true}, {"type": "double", "name": "tipoAtencionSD_CONSULTA
+  DE CLIENTE", "required": true}, {"type": "double", "name": "tipoAtencionSD_CONSULTA
+  DEL CLIENTE", "required": true}, {"type": "double", "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN
+  DE ASEGURADO", "required": true}, {"type": "double", "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN
+  DE COMISIONES", "required": true}, {"type": "double", "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN
+  DE DATA DE SINIESTROS", "required": true}, {"type": "double", "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN
+  DE DATOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN
+  DE INFORMACI\u00c3\u201cN DE ASEGURADO", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_CORRECCI\u00c3\u201cN DE MONTO", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN DE PRIMAS M\u00c3\u008dNIMAS Y VIGENCIAS
+  AT\u00c3\u008dPICAS", "required": true}, {"type": "double", "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN
+  DE PROCESO EN COTIZACI\u00c3\u201cN", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_CORRECCI\u00c3\u201cN DE TASAS", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN EN AGENCIAMIENTO", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_CORRECCI\u00c3\u201cN EN PROCESO DE REVERSO",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_CUADRO DE P\u00c3\u201cLIZA
+  BELCORP", "required": true}, {"type": "double", "name": "tipoAtencionSD_CUPONERA",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_DATO DE FECHA DE NACIMIENTO
+  VAC\u00c3\u008dO EN RENIEC", "required": true}, {"type": "double", "name": "tipoAtencionSD_DEMORA
+  EN NOTIFICACI\u00c3\u201cN DEL PAGO DE LA PASARELA", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_DESAFILIACI\u00c3\u201cN DE RENOVACI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_DESCONOCIMIENTO DE
+  USUARIO", "required": true}, {"type": "double", "name": "tipoAtencionSD_DIFERENCIA
+  DE COMISIONES", "required": true}, {"type": "double", "name": "tipoAtencionSD_DUPLICIDAD
+  DE DATOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_EMISI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_ENDOSO Y REFACTURACI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_ENVIO DE CORREO A
+  USUARIOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR AL
+  EMITIR P\u00c3\u201cLIZA", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR
+  AL EMITIR P\u00c3\u201cLIZA - POR BROKER NO CONFIGURADO", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_ERROR AL RENOVAR LA TRAMA DE SANITAS", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_ERROR CON SERVICIO DE RENIEC",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR DE CONECTIVIDAD
+  SERVIDOR", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR DE
+  COTIZACI\u00c3\u201cN", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR
+  DE DATA", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR DE
+  SERVICIO DE EMISI\u00c3\u201cN PARA SOAT", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_ERROR DE SERVICIO DE EPS", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_ERROR DE SERVICIO PAGO EFECTIVO", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_ERROR DE SERVIDOR", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_ERROR DE USUARIO", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_ERROR EN INFORMACI\u00c3\u201cN", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_ERROR EN PROCESO AUTOM\u00c3\u0081TICO
+  DE EXCLUSIONES DE SANITAS", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR
+  EN SERVICIO DE ASBANC", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR
+  EN SISTEMA DE CONCILIACIONES", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR
+  EN TR\u00c3\u0081MITES", "required": true}, {"type": "double", "name": "tipoAtencionSD_ERROR
+  FLUJO DE EXCLUSI\u00c3\u201cN CON ASEGURADOS YA EXCLUIDOS", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_EXCLUSI\u00c3\u201cN", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_FACTURACI\u00c3\u201cN", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_GENERACI\u00c3\u201cN DE BOLETA", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_GENERACI\u00c3\u201cN DE COMPROBANTE",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_GENERACI\u00c3\u201cN
+  DE NC", "required": true}, {"type": "double", "name": "tipoAtencionSD_GENERACI\u00c3\u201cN
+  DE REPORTE", "required": true}, {"type": "double", "name": "tipoAtencionSD_GENERAR
+  PLANILLA", "required": true}, {"type": "double", "name": "tipoAtencionSD_GENERAR
+  REPORTE DE ASEGURADOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_GENERAR
+  REPORTE DE SINIESTROS", "required": true}, {"type": "double", "name": "tipoAtencionSD_INCLUSI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_INCLUSI\u00c3\u201cN
+  MANUAL DE ASEGURADOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_INFORMACI\u00c3\u201cN
+  DE PLANILLA", "required": true}, {"type": "double", "name": "tipoAtencionSD_INFORMACI\u00c3\u201cN
+  DE USUARIO EN SISTEMA CONCILIACIONES", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_INFORMACI\u00c3\u201cN INCOMPLETA PARA ATENCI\u00c3\u201cN", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_INTERFAZ A DEMANDA", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_INTERFAZ DE OPERACIONES", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_LENTITUD EN GENERACI\u00c3\u201cN
+  DE DOCUMENTOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_LIQUIDACI\u00c3\u201cN
+  MANUAL", "required": true}, {"type": "double", "name": "tipoAtencionSD_MARCA DE
+  INTERFAZ", "required": true}, {"type": "double", "name": "tipoAtencionSD_MIGRACI\u00c3\u201cN
+  DE CARTERA DE VLEY", "required": true}, {"type": "double", "name": "tipoAtencionSD_MIGRACI\u00c3\u201cN
+  DE PLACAS A APESEG", "required": true}, {"type": "double", "name": "tipoAtencionSD_MODIFICACI\u00c3\u201cN
+  DE DATA SINIESTROS", "required": true}, {"type": "double", "name": "tipoAtencionSD_MODIFICACI\u00c3\u201cN
+  DE DOCUMENTOS", "required": true}, {"type": "double", "name": "tipoAtencionSD_MODIFICACI\u00c3\u201cN
+  DE SUMAS ASEGURADAS", "required": true}, {"type": "double", "name": "tipoAtencionSD_NO
+  FIGURA EL COTIZADOR PARA PENSI\u00c3\u201cN", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_NO FIGURA LA POLIZA EN LA PLATAFORMA DIGITAL", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_NO FIGURAN DOCUMENTOS", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_NO FIGURAN TASAS COTIZADOR", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_NO GENERA MOVIMIENTOS - PRORRATEO",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_NO SE GENERA MOVIMIENTO",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_NO SE GENERA MOVIMIENTO
+  POR CIP PENDIENTE", "required": true}, {"type": "double", "name": "tipoAtencionSD_NO
+  TRAE FECHA DE RETROACTIVIDAD", "required": true}, {"type": "double", "name": "tipoAtencionSD_OTROS",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_PASE A PRODUCCI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_PROCESO DE INTERFAZ
+  A SINIESTROS", "required": true}, {"type": "double", "name": "tipoAtencionSD_PRORRATEO",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_REENV\u00c3\u008dO
+  DE INFORMACI\u00c3\u201cN O MOVIMIENTOS A GRANDIA", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_REFACTURACI\u00c3\u201cN", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_REGISTRO C360", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_REGISTRO DE BROKER PARA SANITAS", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_RELANZAMIENTO DE COTIZACI\u00c3\u201cN
+  A T\u00c3\u2030CNICA", "required": true}, {"type": "double", "name": "tipoAtencionSD_RENOVACI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_REPORTE", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REPORTE SUCAVE", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_REPORTERIA", "required": true}, {"type":
+  "double", "name": "tipoAtencionSD_REVERSA DE MOVIMIENTO (tachito)", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVERSO DE CARGA", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVERSO DE COTIZACI\u00c3\u201cN
+  POR FLUJO PENDIENTE CON T\u00c3\u2030CNICA", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_REVERSO DE MOVIMIENTO", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_REVERSO DE MOVIMIENTO DE P\u00c3\u201cLIZA", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVERSO MANUAL DE MOVIMIENTO DE
+  SCTR", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR EL
+  PROCESO DE CONSULTA DE TRANSACCIONES DE VLEY", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_REVISAR EL PROCESO DE COTIZACI\u00c3\u201cN DE VLEY", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVISAR EL PROCESO DE EMISION
+  DE SCTR SANITAS", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR
+  EL PROCESO DE EMISI\u00c3\u201cN DE SCTR", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_REVISAR EL PROCESO DE EMISI\u00c3\u201cN DE VLEY", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVISAR EL PROCESO DE INCLUSI\u00c3\u201cN
+  DE SCTR", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR
+  EL PROCESO DE PAGO CON CIP", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR
+  EL PROCESO DE PAGO EN KUSHKI", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR
+  EL PROCESO DE RENOVACI\u00c3\u201cN DE SCTR", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_REVISAR EL PROCESO DE RENOVACI\u00c3\u201cN DE VLEY", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVISAR EL PROCESO DE REVERSO
+  DE TRANSACCI\u00c3\u201cN PENDIENTE DE COTIZACI\u00c3\u201cN", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_REVISAR EL PROCESO DE SINIESTROS", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVISAR EL PROCESO DE SINIESTROS
+  DE AP", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR EL
+  PROCESO EN COTIZACI\u00c3\u201cN DE AP", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_REVISAR EL PROCESO EN COTIZACI\u00c3\u201cN DE SCTR", "required":
+  true}, {"type": "double", "name": "tipoAtencionSD_REVISAR EL REPORTE DE SINIESTROS",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR LA INTERFAZ
+  DE SINIESTRO", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISAR
+  LA VALIDACI\u00c3\u201cN DE LA TRAMA DE VLEY", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_REVISAR MOVIMIENTOS PENDIENTE EN COTIZACI\u00c3\u201cN",
+  "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISION DE FLUJO
+  COMISIONES", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISI\u00c3\u201cN
+  DE COMPROBANTE", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISI\u00c3\u201cN
+  DE COMPROBANTES RECHAZADOS POR SUNAT", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_REVISI\u00c3\u201cN DE PROFORMAS DE SANITAS", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_REVISI\u00c3\u201cN EN REGISTRO CONTRATANTE
+  Y/O INTERMEDIARIO", "required": true}, {"type": "double", "name": "tipoAtencionSD_REVISI\u00c3\u201cN
+  Y/O CORRECCI\u00c3\u201cN DE RECIBOS EN INTERFAZ", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_SELLO CANCELADO", "required": true}, {"type": "double",
+  "name": "tipoAtencionSD_SOLICITUD", "required": true}, {"type": "double", "name":
+  "tipoAtencionSD_SUSPENSI\u00c3\u201cN DE FACTURACI\u00c3\u201cN", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_TIME-OUT EN JIRA", "required": true},
+  {"type": "double", "name": "tipoAtencionSD_VALIDACI\u00c3\u201cN DE M\u00c3\u201cDULO
+  DE PAGO SCTR", "required": true}, {"type": "double", "name": "tipoAtencionSD_VALIDACI\u00c3\u201cN
+  DE TRAMA", "required": true}, {"type": "double", "name": "tipoAtencionSD_VALIDAR
+  EMISI\u00c3\u201cN DE SOAT", "required": true}, {"type": "double", "name": "tipoAtencionSD_VISUALIZACI\u00c3\u201cN
+  DE DOCUMENTOS", "required": true}, {"type": "double", "name": "area_Anal\u00c3\u00adtica
+  y Actuarial", "required": true}, {"type": "double", "name": "area_Cobranzas", "required":
+  true}, {"type": "double", "name": "area_Comercial Masivos", "required": true}, {"type":
+  "double", "name": "area_Contabilidad", "required": true}, {"type": "double", "name":
+  "area_Cultura Organizacional", "required": true}, {"type": "double", "name": "area_Marketing",
+  "required": true}, {"type": "double", "name": "area_Operaciones", "required": true},
+  {"type": "double", "name": "area_Recepci\u00c3\u00b3n", "required": true}, {"type":
+  "double", "name": "area_Riesgos Operacionales", "required": true}, {"type": "double",
+  "name": "area_Servicio al Cliente", "required": true}, {"type": "double", "name":
+  "area_Siniestros", "required": true}, {"type": "double", "name": "area_Soluciones
+  de Clientes", "required": true}, {"type": "double", "name": "area_TI", "required":
+  true}, {"type": "double", "name": "area_T\u00c3\u00a9cnica", "required": true},
+  {"type": "double", "name": "informador_CVILELAB", "required": true}, {"type": "double",
+  "name": "informador_DCUADRADO", "required": true}, {"type": "double", "name": "informador_IJIMENEZ",
+  "required": true}, {"type": "double", "name": "informador_JVIDAL", "required": true},
+  {"type": "double", "name": "informador_MALCAZAR", "required": true}, {"type": "double",
+  "name": "informador_Usuario_Soluciones_Clientes", "required": true}, {"type": "double",
+  "name": "informador_aalburqueque", "required": true}, {"type": "double", "name":
+  "informador_acuevaz", "required": true}, {"type": "double", "name": "informador_adaviran",
+  "required": true}, {"type": "double", "name": "informador_adminjira", "required":
+  true}, {"type": "double", "name": "informador_afung", "required": true}, {"type":
+  "double", "name": "informador_aperez", "required": true}, {"type": "double", "name":
+  "informador_aramos", "required": true}, {"type": "double", "name": "informador_aricalde",
+  "required": true}, {"type": "double", "name": "informador_arodriguez", "required":
+  true}, {"type": "double", "name": "informador_atambini", "required": true}, {"type":
+  "double", "name": "informador_avalles", "required": true}, {"type": "double", "name":
+  "informador_aveliz", "required": true}, {"type": "double", "name": "informador_bboccolini",
+  "required": true}, {"type": "double", "name": "informador_bvillaizan", "required":
+  true}, {"type": "double", "name": "informador_ccarrasco", "required": true}, {"type":
+  "double", "name": "informador_ccastanedaf", "required": true}, {"type": "double",
+  "name": "informador_ccortez", "required": true}, {"type": "double", "name": "informador_cromero",
+  "required": true}, {"type": "double", "name": "informador_csaldana", "required":
+  true}, {"type": "double", "name": "informador_csotelo", "required": true}, {"type":
+  "double", "name": "informador_dcelis", "required": true}, {"type": "double", "name":
+  "informador_djimenez", "required": true}, {"type": "double", "name": "informador_dlatorre",
+  "required": true}, {"type": "double", "name": "informador_dmejia", "required": true},
+  {"type": "double", "name": "informador_dmontes", "required": true}, {"type": "double",
+  "name": "informador_ealor", "required": true}, {"type": "double", "name": "informador_emera",
+  "required": true}, {"type": "double", "name": "informador_emuro", "required": true},
+  {"type": "double", "name": "informador_eparedes", "required": true}, {"type": "double",
+  "name": "informador_eriveraj", "required": true}, {"type": "double", "name": "informador_fbustamante",
+  "required": true}, {"type": "double", "name": "informador_fcaceda", "required":
+  true}, {"type": "double", "name": "informador_fcarranza", "required": true}, {"type":
+  "double", "name": "informador_fjimenez", "required": true}, {"type": "double", "name":
+  "informador_gestionycontrol", "required": true}, {"type": "double", "name": "informador_gsalazar",
+  "required": true}, {"type": "double", "name": "informador_ivillegas", "required":
+  true}, {"type": "double", "name": "informador_jalvarez", "required": true}, {"type":
+  "double", "name": "informador_jcaceres", "required": true}, {"type": "double", "name":
+  "informador_jcastaneda", "required": true}, {"type": "double", "name": "informador_jhinostroza",
+  "required": true}, {"type": "double", "name": "informador_jlandauro", "required":
+  true}, {"type": "double", "name": "informador_jleandro", "required": true}, {"type":
+  "double", "name": "informador_jlopeza", "required": true}, {"type": "double", "name":
+  "informador_jpanta", "required": true}, {"type": "double", "name": "informador_jrenique",
+  "required": true}, {"type": "double", "name": "informador_jsalas", "required": true},
+  {"type": "double", "name": "informador_jsalcedol", "required": true}, {"type": "double",
+  "name": "informador_jsanchez", "required": true}, {"type": "double", "name": "informador_kbarcena",
+  "required": true}, {"type": "double", "name": "informador_ksusanibar", "required":
+  true}, {"type": "double", "name": "informador_ktoeback", "required": true}, {"type":
+  "double", "name": "informador_lalcalde", "required": true}, {"type": "double", "name":
+  "informador_laranda", "required": true}, {"type": "double", "name": "informador_lchavez",
+  "required": true}, {"type": "double", "name": "informador_lquispe", "required":
+  true}, {"type": "double", "name": "informador_lsalas", "required": true}, {"type":
+  "double", "name": "informador_lsamaniego", "required": true}, {"type": "double",
+  "name": "informador_lvillegas", "required": true}, {"type": "double", "name": "informador_mcalloapaza",
+  "required": true}, {"type": "double", "name": "informador_mgutierrez", "required":
+  true}, {"type": "double", "name": "informador_mpalacios", "required": true}, {"type":
+  "double", "name": "informador_mpuray", "required": true}, {"type": "double", "name":
+  "informador_mrobles", "required": true}, {"type": "double", "name": "informador_msanchez",
+  "required": true}, {"type": "double", "name": "informador_msialer", "required":
+  true}, {"type": "double", "name": "informador_msotelo", "required": true}, {"type":
+  "double", "name": "informador_mtocto", "required": true}, {"type": "double", "name":
+  "informador_mvargasp", "required": true}, {"type": "double", "name": "informador_mvidal",
+  "required": true}, {"type": "double", "name": "informador_mzevallos", "required":
+  true}, {"type": "double", "name": "informador_nhermosa", "required": true}, {"type":
+  "double", "name": "informador_nportugal", "required": true}, {"type": "double",
+  "name": "informador_ocaballero", "required": true}, {"type": "double", "name": "informador_pmija",
+  "required": true}, {"type": "double", "name": "informador_pnanez", "required": true},
+  {"type": "double", "name": "informador_ruscuvilca", "required": true}, {"type":
+  "double", "name": "informador_rvitela", "required": true}, {"type": "double", "name":
+  "informador_sbelda", "required": true}, {"type": "double", "name": "informador_scueva",
+  "required": true}, {"type": "double", "name": "informador_sgarcia", "required":
+  true}, {"type": "double", "name": "informador_sgarciac", "required": true}, {"type":
+  "double", "name": "informador_siniestros", "required": true}, {"type": "double",
+  "name": "informador_solivares", "required": true}, {"type": "double", "name": "informador_soportedigital",
+  "required": true}, {"type": "double", "name": "informador_ssanchez", "required":
+  true}, {"type": "double", "name": "informador_teamcanalcorporativo", "required":
+  true}, {"type": "double", "name": "informador_telemarketing", "required": true},
+  {"type": "double", "name": "informador_tzayerz", "required": true}, {"type": "double",
+  "name": "informador_wvila", "required": true}, {"type": "double", "name": "informador_xalvarez",
+  "required": true}, {"type": "double", "name": "informador_ycastro", "required":
+  true}, {"type": "double", "name": "informador_ydioses", "required": true}, {"type":
+  "double", "name": "informador_zsanchez", "required": true}, {"type": "double", "name":
+  "aplicativo_BackOffice", "required": true}, {"type": "double", "name": "aplicativo_C360",
+  "required": true}, {"type": "double", "name": "aplicativo_Chrome", "required": true},
+  {"type": "double", "name": "aplicativo_Conciliaciones autom\u00c3\u00a1ticas", "required":
+  true}, {"type": "double", "name": "aplicativo_Cotizador -> Accidentes Personales",
+  "required": true}, {"type": "double", "name": "aplicativo_Cotizador -> Vida Grupo",
+  "required": true}, {"type": "double", "name": "aplicativo_Cotizador -> Vida Ley",
+  "required": true}, {"type": "double", "name": "aplicativo_Ecommerce -> Accidentes
+  Personales", "required": true}, {"type": "double", "name": "aplicativo_Ecommerce
+  -> SOAT", "required": true}, {"type": "double", "name": "aplicativo_Integrador",
+  "required": true}, {"type": "double", "name": "aplicativo_Net privada", "required":
+  true}, {"type": "double", "name": "aplicativo_OnBase", "required": true}, {"type":
+  "double", "name": "aplicativo_OnBase -> CxP Comisiones", "required": true}, {"type":
+  "double", "name": "aplicativo_Plataforma Digital", "required": true}, {"type": "double",
+  "name": "aplicativo_Plataforma Digital -> Comisiones", "required": true}, {"type":
+  "double", "name": "aplicativo_Plataforma Digital -> Interfaz Autom\u00c3\u00a1tica",
+  "required": true}, {"type": "double", "name": "aplicativo_Plataforma Digital ->
+  PD - Accidentes Personales", "required": true}, {"type": "double", "name": "aplicativo_Plataforma
+  Digital -> PD - SCTR", "required": true}, {"type": "double", "name": "aplicativo_Plataforma
+  Digital -> PD - SOAT Digital", "required": true}, {"type": "double", "name": "aplicativo_Plataforma
+  Digital -> PD - Vida Grupo", "required": true}, {"type": "double", "name": "aplicativo_Plataforma
+  Digital -> PD - Vida Ley", "required": true}, {"type": "double", "name": "aplicativo_Plataforma
+  de consultas", "required": true}, {"type": "double", "name": "aplicativo_Plataforma
+  de vida", "required": true}, {"type": "double", "name": "aplicativo_SOAT", "required":
+  true}, {"type": "double", "name": "aplicativo_Siniestros", "required": true}, {"type":
+  "double", "name": "aplicativo_Tarifario -> Accidentes Personales", "required": true},
+  {"type": "double", "name": "aplicativo_Visual Time", "required": true}, {"type":
+  "double", "name": "aplicativo_eFacturaci\u00c3\u00b3n", "required": true}, {"type":
+  "double", "name": "clasificacion_Incidencia (error)", "required": true}, {"type":
+  "double", "name": "clasificacion_Requerimiento (nueva funcionalidad)", "required":
+  true}, {"type": "double", "name": "clasificacion_Solicitud", "required": true},
+  {"type": "double", "name": "productoSD_Accidentes Personales", "required": true},
+  {"type": "double", "name": "productoSD_Otros", "required": true}, {"type": "double",
+  "name": "productoSD_SCTR", "required": true}, {"type": "double", "name": "productoSD_SOAT",
+  "required": true}, {"type": "double", "name": "productoSD_Vida Grupo", "required":
+  true}, {"type": "double", "name": "productoSD_Vida Ley", "required": true}, {"type":
+  "double", "name": "impactaCierre_NO", "required": true}, {"type": "double", "name":
+  "impactaCierre_SI", "required": true}, {"type": "double", "name": "hora_creacion",
+  "required": true}, {"type": "double", "name": "dia_semana", "required": true}, {"type":
+  "double", "name": "mes_creacion", "required": true}, {"type": "double", "name":
+  "anio_creacion", "required": true}, {"type": "double", "name": "tfidf_al", "required":
+  true}, {"type": "double", "name": "tfidf_anular", "required": true}, {"type": "double",
+  "name": "tfidf_ap", "required": true}, {"type": "double", "name": "tfidf_aparece",
+  "required": true}, {"type": "double", "name": "tfidf_asegurados", "required": true},
+  {"type": "double", "name": "tfidf_cambio", "required": true}, {"type": "double",
+  "name": "tfidf_cierre", "required": true}, {"type": "double", "name": "tfidf_con",
+  "required": true}, {"type": "double", "name": "tfidf_de", "required": true}, {"type":
+  "double", "name": "tfidf_documentos", "required": true}, {"type": "double", "name":
+  "tfidf_el", "required": true}, {"type": "double", "name": "tfidf_en", "required":
+  true}, {"type": "double", "name": "tfidf_error", "required": true}, {"type": "double",
+  "name": "tfidf_errores", "required": true}, {"type": "double", "name": "tfidf_estado",
+  "required": true}, {"type": "double", "name": "tfidf_factura", "required": true},
+  {"type": "double", "name": "tfidf_facturacion", "required": true}, {"type": "double",
+  "name": "tfidf_facturar", "required": true}, {"type": "double", "name": "tfidf_figura",
+  "required": true}, {"type": "double", "name": "tfidf_genera", "required": true},
+  {"type": "double", "name": "tfidf_generar", "required": true}, {"type": "double",
+  "name": "tfidf_interfaz", "required": true}, {"type": "double", "name": "tfidf_la",
+  "required": true}, {"type": "double", "name": "tfidf_las", "required": true}, {"type":
+  "double", "name": "tfidf_ley", "required": true}, {"type": "double", "name": "tfidf_liza",
+  "required": true}, {"type": "double", "name": "tfidf_los", "required": true}, {"type":
+  "double", "name": "tfidf_movimiento", "required": true}, {"type": "double", "name":
+  "tfidf_movimientos", "required": true}, {"type": "double", "name": "tfidf_no", "required":
+  true}, {"type": "double", "name": "tfidf_pago", "required": true}, {"type": "double",
+  "name": "tfidf_pd", "required": true}, {"type": "double", "name": "tfidf_permite",
+  "required": true}, {"type": "double", "name": "tfidf_planilla", "required": true},
+  {"type": "double", "name": "tfidf_poliza", "required": true}, {"type": "double",
+  "name": "tfidf_por", "required": true}, {"type": "double", "name": "tfidf_puede",
+  "required": true}, {"type": "double", "name": "tfidf_p\u00e3", "required": true},
+  {"type": "double", "name": "tfidf_p\u00e3\u00b3liza", "required": true}, {"type":
+  "double", "name": "tfidf_renovaci\u00e3\u00b3n", "required": true}, {"type": "double",
+  "name": "tfidf_ruc", "required": true}, {"type": "double", "name": "tfidf_sctr",
+  "required": true}, {"type": "double", "name": "tfidf_se", "required": true}, {"type":
+  "double", "name": "tfidf_sistema", "required": true}, {"type": "double", "name":
+  "tfidf_soat", "required": true}, {"type": "double", "name": "tfidf_tramite", "required":
+  true}, {"type": "double", "name": "tfidf_urgente", "required": true}, {"type": "double",
+  "name": "tfidf_vida", "required": true}, {"type": "double", "name": "tfidf_visualiza",
+  "required": true}, {"type": "double", "name": "tfidf_vl", "required": true}, {"type":
+  "double", "name": "target_horas_resolucion", "required": true}]}'
+source: '{"tags": {"mlflow.user": "mauvyc", "mlflow.source.name": "/Users/mauvyc/Library/Python/3.9/lib/python/site-packages/ipykernel_launcher.py",
+  "mlflow.source.type": "LOCAL"}}'
+source_type: code

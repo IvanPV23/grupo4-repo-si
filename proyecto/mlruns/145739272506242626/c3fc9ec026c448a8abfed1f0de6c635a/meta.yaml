@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/c3fc9ec026c448a8abfed1f0de6c635a/artifacts
+end_time: 1772083918057
+entry_point_name: ''
+experiment_id: '145739272506242626'
+lifecycle_stage: active
+run_id: c3fc9ec026c448a8abfed1f0de6c635a
+run_name: 'Fase 3: Modelo Final (LightGBM)'
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772083914038
+status: 3
+tags: []
+user_id: mauvyc

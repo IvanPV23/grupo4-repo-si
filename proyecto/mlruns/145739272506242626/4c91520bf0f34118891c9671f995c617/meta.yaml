@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/4c91520bf0f34118891c9671f995c617/artifacts
+end_time: 1772080726266
+entry_point_name: ''
+experiment_id: '145739272506242626'
+lifecycle_stage: active
+run_id: 4c91520bf0f34118891c9671f995c617
+run_name: KNN | log1p_sqrt
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772080726195
+status: 3
+tags: []
+user_id: mauvyc

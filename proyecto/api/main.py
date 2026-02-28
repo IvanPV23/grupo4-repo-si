@@ -5,7 +5,7 @@ Recibe tickets desde la interfaz web y los procesa por el pipeline de agentes.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List
@@ -33,6 +33,8 @@ AGENTE_HISTORICO   = os.getenv("AGENTE_HISTORICO_URL",   "http://agente-historic
 AGENTE_ESTIMADOR   = os.getenv("AGENTE_ESTIMADOR_URL",   "http://agente-estimador:8005")
 AGENTE_COMPLEJIDAD = os.getenv("AGENTE_COMPLEJIDAD_URL", "http://agente-complejidad:8001")
 AGENTE_ORQUESTADOR = os.getenv("AGENTE_ORQUESTADOR_URL", "http://agente-orquestador:8003")
+AGENTE_DASHBOARD   = os.getenv("AGENTE_DASHBOARD_URL",   "http://agente-dashboard:8006")
+MLFLOW_PUBLIC_URL  = os.getenv("MLFLOW_PUBLIC_URL",      "http://localhost:5001")
 
 # ── n8n Webhook ────────────────────────────────────────────
 # En Docker, la API resuelve por nombre de servicio ("n8n"), no por container_name.
@@ -331,6 +333,53 @@ async def metricas():
         "reporte_excel":      resumen["existe"],
         "timestamp":          datetime.now().isoformat(),
     }
+
+
+# ── MLflow ────────────────────────────────────────────────────────────────────
+
+@app.get("/mlflow", tags=["MLflow"])
+async def mlflow_ui():
+    """
+    Redirige al navegador a la interfaz MLflow UI (puerto 5001).
+    Útil cuando el frontend quiere abrir MLflow con un fetch/redirect.
+    """
+    return RedirectResponse(url=MLFLOW_PUBLIC_URL, status_code=302)
+
+
+@app.get("/mlflow/info", tags=["MLflow"])
+async def mlflow_info():
+    """Retorna la URL pública de MLflow UI para que el frontend pueda construir el link."""
+    return {"mlflow_url": MLFLOW_PUBLIC_URL, "descripcion": "MLflow Tracking Server"}
+
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+
+@app.get("/dashboard/datos/{chart}", tags=["Dashboard"])
+async def dashboard_datos(chart: str):
+    """
+    Proxy hacia el agente-dashboard. Rutas disponibles:
+      resumen | mesas | complejidad | tiempo | niveles | mlflow-inferencias | historico-db
+    """
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            r = await client.get(f"{AGENTE_DASHBOARD}/charts/{chart}")
+            return JSONResponse(content=r.json(), status_code=r.status_code)
+        except Exception as e:
+            return JSONResponse(
+                content={"error": f"Dashboard no disponible: {e}"},
+                status_code=503,
+            )
+
+
+@app.get("/dashboard/health", tags=["Dashboard"])
+async def dashboard_health():
+    """Estado del agente dashboard."""
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        try:
+            r = await client.get(f"{AGENTE_DASHBOARD}/health")
+            return r.json()
+        except Exception:
+            return {"status": "unavailable", "agente": AGENTE_DASHBOARD}
 
 
 if __name__ == "__main__":

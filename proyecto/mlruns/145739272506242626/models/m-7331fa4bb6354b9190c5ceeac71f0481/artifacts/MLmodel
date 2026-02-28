@@ -1,0 +1,36 @@
+artifact_path: file:///Users/mauvyc/Documents/SI/mlruns/145739272506242626/models/m-7331fa4bb6354b9190c5ceeac71f0481/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.9.6
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.6.1
+is_signature_from_type_hint: false
+mlflow_version: 3.1.4
+model_id: m-7331fa4bb6354b9190c5ceeac71f0481
+model_size_bytes: 7112190
+model_uuid: m-7331fa4bb6354b9190c5ceeac71f0481
+prompts: null
+run_id: 664faade37c54eaebc35cd54cca2e117
+signature:
+  inputs: '[{"type": "string", "name": "tipoIncidencia", "required": true}, {"type":
+    "string", "name": "tipoAtencionSD", "required": false}, {"type": "string", "name":
+    "area", "required": false}, {"type": "string", "name": "informador", "required":
+    true}, {"type": "string", "name": "aplicativo", "required": true}, {"type": "string",
+    "name": "clasificacion", "required": false}, {"type": "string", "name": "productoSD",
+    "required": false}, {"type": "string", "name": "impactaCierre", "required": false},
+    {"type": "integer", "name": "hora_creacion", "required": true}, {"type": "integer",
+    "name": "dia_semana", "required": true}, {"type": "integer", "name": "mes_creacion",
+    "required": true}, {"type": "integer", "name": "anio_creacion", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-02-26 05:31:52.739132'

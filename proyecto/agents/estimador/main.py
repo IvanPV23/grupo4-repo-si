@@ -14,15 +14,42 @@ from pathlib import Path
 from io import BytesIO
 import cloudpickle
 import sys
-
+import time
+import os
+import logging
 
 import pandas as pd
+
+logger = logging.getLogger("estimador")
+
+# ── MLflow tracking (no-op si el servidor no está disponible) ───────────────
+_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "")
+_MLFLOW_EXPERIMENT = os.getenv("MLFLOW_EXPERIMENT_NAME", "estimador-inferencias")
+_mlflow_ready = False
+
+def _init_mlflow():
+    """Inicializa MLflow una sola vez al arrancar el servicio."""
+    global _mlflow_ready
+    if not _MLFLOW_URI:
+        return
+    try:
+        import mlflow
+        mlflow.set_tracking_uri(_MLFLOW_URI)
+        mlflow.set_experiment(_MLFLOW_EXPERIMENT)
+        _mlflow_ready = True
+        logger.info(f"[MLflow] Conectado a {_MLFLOW_URI}, experimento '{_MLFLOW_EXPERIMENT}'")
+    except Exception as e:
+        logger.warning(f"[MLflow] No disponible al arrancar ({e}). El tracking se omitirá.")
 
 app = FastAPI(
     title="Agente Estimador",
     description="Estima tiempo de resolución de tickets en horas",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    _init_mlflow()
 
 app.add_middleware(
     CORSMiddleware,
@@ -191,12 +218,57 @@ async def health():
     return {"status": "healthy", "agent": "Estimador", "timestamp": datetime.now().isoformat()}
 
 
+def _log_mlflow_inferencia(
+    ticket_id: str,
+    features: dict,
+    horas_final: float,
+    categoria: str,
+    latencia_ms: float,
+    model_name: str,
+):
+    """
+    Registra un run de inferencia en MLflow.
+    Se llama de forma best-effort: si falla, no interrumpe la respuesta.
+    """
+    if not _mlflow_ready:
+        return
+    try:
+        import mlflow
+        with mlflow.start_run(run_name=f"inf-{ticket_id}"):
+            # Params: features de entrada (strings y números)
+            mlflow.log_params({
+                "tipoIncidencia": str(features.get("tipoIncidencia", ""))[:250],
+                "tipoAtencionSD": str(features.get("tipoAtencionSD", ""))[:250],
+                "area":           str(features.get("area", ""))[:250],
+                "productoSD":     str(features.get("productoSD", ""))[:250],
+                "hora_creacion":  features.get("hora_creacion", 0),
+                "dia_semana":     features.get("dia_semana", 0),
+                "mes_creacion":   features.get("mes_creacion", 1),
+            })
+            # Métricas: predicción + latencia
+            mlflow.log_metrics({
+                "tiempo_estimado_horas": horas_final,
+                "latencia_ms":           round(latencia_ms, 2),
+            })
+            # Tags: contexto del run
+            mlflow.set_tags({
+                "ticket_id":     ticket_id,
+                "categoria":     categoria,
+                "model_version": model_name,
+                "servicio":      "agente-estimador",
+            })
+    except Exception as e:
+        logger.warning(f"[MLflow] Error al loguear inferencia {ticket_id}: {e}")
+
+
 @app.post("/estimar", response_model=RespuestaEstimador)
 async def estimar(consulta: ConsultaEstimador):
     """
     Estima el tiempo de resolución del ticket en horas.
     Basado exclusivamente en el modelo de ML entrenado (linear_regression.pkl).
+    Cada inferencia queda trackeada en MLflow (si el servidor está disponible).
     """
+    t0 = time.perf_counter()
     try:
         artefact = _load_artefact()
         features = consulta.to_ml_features()
@@ -206,11 +278,23 @@ async def estimar(consulta: ConsultaEstimador):
             status_code=500,
             detail=f"No se pudo estimar con el modelo de ML: {e}",
         )
+    latencia_ms = (time.perf_counter() - t0) * 1000
 
     horas_final = round(pred_horas, 2)
     rango_min = round(horas_final * 0.75, 2)
     rango_max = round(horas_final * 1.25, 2)
     categoria = _categoria_tiempo(horas_final)
+    model_name = artefact.get("model_name", "modelo.pkl")
+
+    # Tracking MLflow (best-effort, no bloquea la respuesta)
+    _log_mlflow_inferencia(
+        ticket_id=consulta.ticket_id,
+        features=features,
+        horas_final=horas_final,
+        categoria=categoria,
+        latencia_ms=latencia_ms,
+        model_name=model_name,
+    )
 
     resultado = {
         "tiempo_estimado_horas": horas_final,
@@ -218,7 +302,8 @@ async def estimar(consulta: ConsultaEstimador):
         "rango_maximo_horas": rango_max,
         "categoria_tiempo": categoria,
         "factores_aplicados": [
-            f"ML: {artefact.get('model_name','linear_regression')}",
+            f"ML: {model_name}",
+            f"latencia: {round(latencia_ms, 1)}ms",
         ],
     }
 
