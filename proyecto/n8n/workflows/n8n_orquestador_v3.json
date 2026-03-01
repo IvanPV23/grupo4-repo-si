@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "derivar",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
       },
       "id": "wh-derivar-v3-001",
@@ -198,6 +198,19 @@
     },
     {
       "parameters": {
+        "respondWith": "firstIncomingItem"
+      },
+      "id": "respond-webhook-v3-008b",
+      "name": "8b. Responder al Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2340,
+        280
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "http://agente-dashboard:8006/webhook/actualizar",
         "sendBody": false,
@@ -336,6 +349,17 @@
           },
           {
             "node": "9a. Comunicador (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8. Armar Respuesta Final": {
+      "main": [
+        [
+          {
+            "node": "8b. Responder al Webhook",
             "type": "main",
             "index": 0
           }
