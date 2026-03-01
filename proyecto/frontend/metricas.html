@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard de Métricas — Protecta Seguros</title>
+    <meta name="description" content="Dashboard de Métricas del Sistema de Derivación — Protecta Seguros" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Chart.js para gráficos del dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ── Header ── -->
+    <header>
+        <div class="header-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="1" />
+                <line x1="9" y1="12" x2="15" y2="12" />
+                <line x1="9" y1="16" x2="13" y2="16" />
+            </svg>
+        </div>
+        <div>
+            <h1>Sistema de Derivación Inteligente</h1>
+            <p>Pipeline multiagente — Histórico · Estimador · Complejidad · Orquestador</p>
+        </div>
+        <span class="header-badge">v3.0</span>
+    </header>
+
+    <!-- ── Subbar ── -->
+    <div class="subbar"
+        style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem;">
+        <div style="display:flex; align-items:center; gap:.5rem;">
+            <svg class="subbar-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>Protecta Seguros · Service Desk · Orquestado vía n8n</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:.5rem;">
+            <!-- Botón Volver a Tickets -->
+            <a href="index.html" style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff;
+               padding:.25rem .75rem; border-radius:6px; font-size:.75rem; cursor:pointer; text-decoration:none;
+               display:flex; align-items:center; gap:.35rem;">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Tickets
+            </a>
+            <!-- Botón MLflow UI (nueva pestaña) -->
+            <a href="http://localhost:5001" target="_blank" rel="noopener" style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff;
+               padding:.25rem .75rem; border-radius:6px; font-size:.75rem; cursor:pointer; text-decoration:none;
+               display:flex; align-items:center; gap:.35rem;">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                MLflow UI
+            </a>
+        </div>
+    </div>
+
+    <!-- ── Dashboard ── -->
+    <section id="dashboard-section" style="max-width:1200px; margin:2rem auto; padding:0 1.5rem; flex: 1;">
+
+        <!-- Encabezado dashboard -->
+        <div
+            style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+            <div style="display:flex; align-items:center; gap:.75rem;">
+                <div style="background:var(--blue-light,#dbeafe); border-radius:8px; padding:.5rem; display:flex;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--blue,#1a6bbf)"
+                        stroke-width="1.75">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 style="font-size:1rem; font-weight:600; color:var(--text,#1e2a38); margin:0;">Dashboard de
+                        Métricas</h2>
+                    <p style="font-size:.75rem; color:var(--text-muted,#64748b); margin:0;">Histórico · Excel
+                        acumulativo · MLflow inferencias</p>
+                </div>
+            </div>
+            <div style="display:flex; gap:.5rem; align-items:center;">
+                <button id="btn-reload-dashboard" onclick="cargarDashboard()" style="background:var(--blue,#1a6bbf); color:#fff; border:none; padding:.35rem .9rem;
+                 border-radius:6px; font-size:.78rem; cursor:pointer;">
+                    Actualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Cards de resumen -->
+        <div id="dashboard-resumen"
+            style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+            <div class="card" style="padding:1rem; text-align:center;">
+                <div style="font-size:1.8rem; font-weight:700; color:var(--blue,#1a6bbf);" id="kpi-total">—</div>
+                <div style="font-size:.75rem; color:var(--text-muted,#64748b);">Tickets procesados</div>
+            </div>
+            <div class="card" style="padding:1rem; text-align:center;">
+                <div style="font-size:1.8rem; font-weight:700; color:#15803d;" id="kpi-pct">—</div>
+                <div style="font-size:.75rem; color:var(--text-muted,#64748b);">% automatizado</div>
+            </div>
+            <div class="card" style="padding:1rem; text-align:center;">
+                <div style="font-size:1.8rem; font-weight:700; color:#b45309;" id="kpi-historico">—</div>
+                <div style="font-size:.75rem; color:var(--text-muted,#64748b);">Vía histórico</div>
+            </div>
+            <div class="card" style="padding:1rem; text-align:center;">
+                <div style="font-size:1.8rem; font-weight:700; color:#dc2626;" id="kpi-cola">—</div>
+                <div style="font-size:.75rem; color:var(--text-muted,#64748b);">En cola</div>
+            </div>
+        </div>
+
+        <!-- Gráficos 2x2 -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1rem;">
+
+            <div class="card" style="padding:1rem;">
+                <div style="font-size:.82rem; font-weight:600; color:var(--text,#1e2a38); margin-bottom:.75rem;">
+                    Distribución por Mesa
+                </div>
+                <canvas id="chart-mesas" height="200"></canvas>
+            </div>
+
+            <div class="card" style="padding:1rem;">
+                <div style="font-size:.82rem; font-weight:600; color:var(--text,#1e2a38); margin-bottom:.75rem;">
+                    Distribución por Complejidad
+                </div>
+                <canvas id="chart-complejidad" height="200"></canvas>
+            </div>
+
+            <div class="card" style="padding:1rem;">
+                <div style="font-size:.82rem; font-weight:600; color:var(--text,#1e2a38); margin-bottom:.75rem;">
+                    Distribución por Nivel (N1/N2/N3)
+                </div>
+                <canvas id="chart-niveles" height="200"></canvas>
+            </div>
+
+            <div class="card" style="padding:1rem;">
+                <div style="font-size:.82rem; font-weight:600; color:var(--text,#1e2a38); margin-bottom:.75rem;">
+                    Tiempo estimado (categorías)
+                    <span id="kpi-latencia"
+                        style="font-weight:400; color:var(--text-muted,#64748b); margin-left:.5rem; font-size:.75rem;"></span>
+                </div>
+                <canvas id="chart-tiempo" height="200"></canvas>
+            </div>
+
+        </div>
+
+        <p id="dashboard-error" style="color:#dc2626; font-size:.78rem; margin-top:.75rem; display:none;"></p>
+
+    </section>
+
+    <script>
+        // ── Dashboard ─────────────────────────────────────────────────────────────
+        // Si API es el de backend, en main.py / dashboard está en localhost:8006
+        const API = 'http://localhost:8006';
+        const CHART_COLORS = ['#1a6bbf', '#e87722', '#15803d', '#dc2626', '#7c3aed', '#0891b2', '#b45309', '#475569'];
+        let _charts = {};
+
+        function _destroyChart(id) {
+            if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+        }
+
+        function _makeBarChart(canvasId, labels, data, color) {
+            _destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            _charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ data, backgroundColor: color || CHART_COLORS, borderRadius: 4 }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                    responsive: true,
+                    maintainAspectRatio: true,
+                }
+            });
+        }
+
+        function _makeDoughnutChart(canvasId, labels, data) {
+            _destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            _charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{ data, backgroundColor: CHART_COLORS, borderWidth: 1 }]
+                },
+                options: {
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                    responsive: true,
+                    maintainAspectRatio: true,
+                }
+            });
+        }
+
+        async function _fetch(path) {
+            const r = await fetch(API + path);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        }
+
+        async function cargarDashboard() {
+            const errEl = document.getElementById('dashboard-error');
+            errEl.style.display = 'none';
+            try {
+                const [resumen, mesas, complejidad, niveles, tiempo] = await Promise.all([
+                    _fetch('/charts/resumen'),
+                    _fetch('/charts/mesas'),
+                    _fetch('/charts/complejidad'),
+                    _fetch('/charts/niveles'),
+                    _fetch('/charts/tiempo'),
+                ]);
+
+                // KPIs
+                document.getElementById('kpi-total').textContent = resumen.total ?? '—';
+                document.getElementById('kpi-pct').textContent = resumen.pct_automatizado != null ? resumen.pct_automatizado + '%' : '—';
+                document.getElementById('kpi-historico').textContent = resumen.via_historico ?? '—';
+                document.getElementById('kpi-cola').textContent = resumen.en_cola ?? '—';
+
+                // Latencia MLflow
+                if (tiempo.promedio_latencia_ms != null) {
+                    document.getElementById('kpi-latencia').textContent =
+                        `· latencia prom: ${tiempo.promedio_latencia_ms}ms (${tiempo.mlflow_runs_analizados} runs)`;
+                }
+
+                // Gráficos
+                _makeDoughnutChart('chart-mesas', mesas.labels, mesas.data);
+                _makeBarChart('chart-complejidad', complejidad.labels, complejidad.data);
+                _makeDoughnutChart('chart-niveles', niveles.labels, niveles.data);
+                _makeBarChart('chart-tiempo', tiempo.labels, tiempo.data, '#1a6bbf');
+
+            } catch (e) {
+                errEl.textContent = 'Dashboard no disponible: ' + e.message + '. ¿Está levantado agente-dashboard?';
+                errEl.style.display = 'block';
+            }
+        }
+
+        // Carga automática al abrir la página
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(cargarDashboard, 800);
+        });
+    </script>
+</body>
+
+</html>

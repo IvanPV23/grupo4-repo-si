@@ -34,14 +34,13 @@ AGENTE_ESTIMADOR   = os.getenv("AGENTE_ESTIMADOR_URL",   "http://agente-estimado
 AGENTE_COMPLEJIDAD = os.getenv("AGENTE_COMPLEJIDAD_URL", "http://agente-complejidad:8001")
 AGENTE_ORQUESTADOR = os.getenv("AGENTE_ORQUESTADOR_URL", "http://agente-orquestador:8003")
 AGENTE_DASHBOARD   = os.getenv("AGENTE_DASHBOARD_URL",   "http://agente-dashboard:8006")
-MLFLOW_PUBLIC_URL  = os.getenv("MLFLOW_PUBLIC_URL",      "http://localhost:5001")
+MLFLOW_PUBLIC_URL  = os.getenv("MLFLOW_PUBLIC_URL",      "http://127.0.0.1:5000")
 
-# ── n8n Webhook ────────────────────────────────────────────
-# En Docker, la API resuelve por nombre de servicio ("n8n"), no por container_name.
-N8N_WEBHOOK_URL = os.getenv(
-    "N8N_WEBHOOK_URL",
-    "http://n8n:5678/webhook/derivar",
-)
+# ── n8n Webhooks (switch de 3 caminos: derivar | metricas | mlops) ─────────────────
+N8N_BASE = os.getenv("N8N_BASE_URL", "http://n8n:5678")
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", f"{N8N_BASE}/webhook/derivar")
+N8N_WEBHOOK_METRICAS = os.getenv("N8N_WEBHOOK_METRICAS", f"{N8N_BASE}/webhook/metricas")
+N8N_WEBHOOK_MLOPS = os.getenv("N8N_WEBHOOK_MLOPS", f"{N8N_BASE}/webhook/mlops")
 
 # ── Configuración Jira Cloud ───────────────────────────────────────
 JIRA_DOMAIN      = os.getenv("JIRA_DOMAIN",      "jhairrmb3.atlassian.net")
@@ -302,6 +301,39 @@ async def estado_mesas():
             return {"error": "Orquestador no disponible"}
 
 
+# ── Proxy n8n (switch: metricas / mlops) ─────────────────────────────────────
+@app.post("/n8n/metricas", tags=["n8n"])
+async def proxy_n8n_metricas(body: Optional[dict] = None):
+    """
+    Llama al webhook n8n /webhook/metricas.
+    El flujo puede obtener el reporte acumulativo y devolver dashboardUrl para redirigir al front.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            r = await client.post(N8N_WEBHOOK_METRICAS, json=body or {})
+            if r.status_code in (200, 201):
+                return r.json()
+            raise HTTPException(status_code=r.status_code, detail=r.text[:500])
+    except httpx.RequestError as ex:
+        raise HTTPException(status_code=503, detail=f"n8n no disponible: {ex}")
+
+
+@app.post("/n8n/mlops", tags=["n8n"])
+async def proxy_n8n_mlops(body: Optional[dict] = None):
+    """
+    Llama al webhook n8n /webhook/mlops.
+    Retorna mlflowUrl y opcionalmente info de reentrenamiento.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(N8N_WEBHOOK_MLOPS, json=body or {})
+            if r.status_code in (200, 201):
+                return r.json()
+            raise HTTPException(status_code=r.status_code, detail=r.text[:500])
+    except httpx.RequestError as ex:
+        raise HTTPException(status_code=503, detail=f"n8n no disponible: {ex}")
+
+
 @app.get("/reporte", tags=["Reportes"])
 async def descargar_reporte():
     """Descarga el Excel acumulativo de derivaciones."""
@@ -340,7 +372,7 @@ async def metricas():
 @app.get("/mlflow", tags=["MLflow"])
 async def mlflow_ui():
     """
-    Redirige al navegador a la interfaz MLflow UI (puerto 5001).
+    Redirige al navegador a la interfaz MLflow UI (puerto 5000).
     Útil cuando el frontend quiere abrir MLflow con un fetch/redirect.
     """
     return RedirectResponse(url=MLFLOW_PUBLIC_URL, status_code=302)

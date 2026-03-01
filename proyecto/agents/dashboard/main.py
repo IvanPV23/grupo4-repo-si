@@ -36,7 +36,7 @@ app.add_middleware(
 _BASE = Path(__file__).resolve().parents[2]
 RUTA_EXCEL = _BASE / "data" / "outputs" / "reporte_acumulativo.xlsx"
 RUTA_DB    = _BASE / "data" / "historico.db"
-MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow-server:5001")
+MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://agente-mlflow:5000")
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
