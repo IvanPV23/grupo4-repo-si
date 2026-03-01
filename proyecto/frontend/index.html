@@ -98,8 +98,8 @@
           </div>
           <div class="form-group">
             <label>Tipo de Atención SD <span class="required">*</span></label>
-            <select id="tipo_atencion_sd" required>
-              <option value="">Seleccionar...</option>
+            <!-- Select original (fuente de datos), oculto en la UI -->
+            <select id="tipo_atencion_sd" required style="display:none;">
               <option>ACTIVACIÓN DE BOT Y REPROCESO</option>
               <option>ACTIVACIÓN O CREACIÓN DE USUARIOS</option>
               <option>ACTUALIZACIÓN DE CIIU</option>
@@ -266,6 +266,15 @@
               <option>VISUALIZACIÓN DE DOCUMENTOS</option>
               <option value="">(EN BLANCO)</option>
             </select>
+            <!-- Nuevo dropdown buscable para Tipo de Atención SD -->
+            <div class="search-dropdown" id="tipo-sd-container">
+              <input id="tipo-sd-search" type="text" placeholder="Buscar tipo de atención..." autocomplete="off" />
+              <svg class="dd-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#94a3b8"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+              <div class="dd-list" id="tipo-sd-list"></div>
+            </div>
           </div>
         </div>
 
@@ -279,6 +288,7 @@
           <div class="form-group">
             <label>Área <span class="required">*</span></label>
             <select id="area" required>
+              <option value="">Seleccionar...</option>
               <option>Analatica y Actuarial</option>
               <option>Cobranzas</option>
               <option>Operaciones</option>

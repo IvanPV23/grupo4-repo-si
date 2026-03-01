@@ -29,6 +29,9 @@ const INFORMANTES = [
 /* ── Searchable Dropdown ── */
 let ddOpen = false;
 let highlighted = -1;
+let ddOpenTipoSD = false;
+let highlightedTipoSD = -1;
+let TIPOS_SD = [];
 
 function initDropdown() {
     const ddSearch = document.getElementById('informador-search');
@@ -81,6 +84,80 @@ function initDropdown() {
         } else if (e.key === 'Enter') {
             e.preventDefault();
             if (highlighted >= 0 && items[highlighted]) selectItem(items[highlighted].dataset.val);
+        } else if (e.key === 'Escape') {
+            closeDrop();
+        }
+    });
+
+    ddList.addEventListener('mousedown', (e) => {
+        const item = e.target.closest('.dd-item');
+        if (item) selectItem(item.dataset.val);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!ddContainer.contains(e.target)) closeDrop();
+    });
+}
+
+function initTipoSDDropdown() {
+    const selectEl = document.getElementById('tipo_atencion_sd');
+    const ddSearch = document.getElementById('tipo-sd-search');
+    const ddList = document.getElementById('tipo-sd-list');
+    const ddContainer = document.getElementById('tipo-sd-container');
+
+    if (!selectEl || !ddSearch || !ddList || !ddContainer) return;
+
+    TIPOS_SD = Array.from(selectEl.options)
+        .map(o => o.value || o.textContent)
+        .filter(v => v && v.trim() !== '');
+
+    function renderList(filter) {
+        const q = (filter || '').toLowerCase();
+        const filtered = TIPOS_SD.filter(n => n.toLowerCase().includes(q));
+        ddList.innerHTML = filtered.length
+            ? filtered.map((n, i) =>
+                `<div class="dd-item" data-val="${n}" data-idx="${i}">${n}</div>`
+            ).join('')
+            : '<div class="dd-empty">Sin resultados</div>';
+        highlightedTipoSD = -1;
+    }
+
+    function openDrop() {
+        renderList(ddSearch.value);
+        ddList.classList.add('open');
+        ddOpenTipoSD = true;
+    }
+
+    function closeDrop() {
+        ddList.classList.remove('open');
+        ddOpenTipoSD = false;
+    }
+
+    function selectItem(val) {
+        ddSearch.value = val;
+        selectEl.value = val;
+        closeDrop();
+    }
+
+    ddSearch.addEventListener('focus', () => openDrop());
+    ddSearch.addEventListener('input', () => openDrop());
+    ddSearch.addEventListener('keydown', (e) => {
+        const items = ddList.querySelectorAll('.dd-item');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            highlightedTipoSD = Math.min(highlightedTipoSD + 1, items.length - 1);
+            items.forEach((el, i) => el.classList.toggle('highlighted', i === highlightedTipoSD));
+            items[highlightedTipoSD]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            highlightedTipoSD = Math.max(highlightedTipoSD - 1, 0);
+            items.forEach((el, i) => el.classList.toggle('highlighted', i === highlightedTipoSD));
+            items[highlightedTipoSD]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedTipoSD >= 0 && items[highlightedTipoSD]) {
+                selectItem(items[highlightedTipoSD].dataset.val);
+            }
         } else if (e.key === 'Escape') {
             closeDrop();
         }
@@ -261,5 +338,6 @@ function actualizarHistorial() {
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
     initDropdown();
+    initTipoSDDropdown();
     initForm();
 });
