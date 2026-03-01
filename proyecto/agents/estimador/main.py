@@ -18,9 +18,31 @@ import time
 import os
 import logging
 
+import html
+import re
+import unicodedata
+import numpy as np
+import ftfy
+import scipy.sparse as sp
 import pandas as pd
 
 logger = logging.getLogger("estimador")
+
+
+def _limpiar_resumen(texto: str) -> str:
+    """Limpieza de texto para TF-IDF. Réplica exacta de la función del notebook."""
+    if not texto or not str(texto).strip():
+        return ""
+    try:
+        texto = ftfy.fix_text(str(texto))
+    except Exception:
+        texto = str(texto)
+    texto = html.unescape(texto)
+    texto = texto.lower()
+    texto = re.sub(r"\b\d+[_/\-]\d+\b", "", texto)
+    texto = re.sub(r"\b\d+\b", "", texto)
+    texto = re.sub(r"[\/\\:;\-><\=\+#@!?\.,\(\)\[\]\{\}\"'*&%$~`|_]", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
 
 # ── MLflow tracking (no-op si el servidor no está disponible) ───────────────
 _MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "")
@@ -111,6 +133,7 @@ class ConsultaEstimador(BaseModel):
             "impactaCierre": self.impactaCierre or "",
             "informador": self.informador or "",
             "aplicativo": self.aplicativo or "",
+            "resumen": self.resumen or "",
             "hora_creacion": int(hora_creacion),
             "dia_semana": int(dia_semana),
             "mes_creacion": int(mes_creacion),
@@ -147,49 +170,104 @@ def _load_artefact() -> dict[str, Any]:
         raise ValueError("Artefacto inválido: se esperaba dict con key 'pipeline'.")
 
     pipeline = artefact["pipeline"]
-    target_inverse_fn = artefact.get("target_inverse_fn")
     features_cat = artefact.get("features_cat") or []
     features_num = artefact.get("features_num") or []
-    features_all = artefact.get("features_all") or []
     dummy_columns = artefact.get("dummy_columns") or []
-    model_name = artefact.get("model_name", "linear_regression.pkl")
+    features_cyclic_raw = artefact.get("features_cyclic_raw") or {
+        "hora_creacion": 24, "dia_semana": 7, "mes_creacion": 12
+    }
+    tfidf_vectorizer = artefact.get("tfidf_vectorizer")
+    target_max_h = float(artefact.get("target_max_h", 720))
+    model_name = artefact.get("model_name", "modelo.pkl")
+
+    # Inverse transform: prefer callable stored in artefact; fall back to string lookup
+    target_inverse_fn = artefact.get("target_inverse_fn")
+    if target_inverse_fn is None:
+        _t = artefact.get("target_transform", "log1p")
+        _inv_map = {
+            "log1p":      lambda z: np.maximum(np.expm1(z), 0.0),
+            "sqrt":       np.square,
+            "log1p_sqrt": lambda z: np.square(np.maximum(np.expm1(z), 0.0)),
+            "log":        np.exp,
+        }
+        target_inverse_fn = _inv_map.get(_t)
 
     def predict(payload: Any):
         if isinstance(payload, dict):
             df = pd.DataFrame([payload])
             single = True
         elif isinstance(payload, pd.DataFrame):
-            df = payload
+            df = payload.copy()
             single = False
         else:
             raise TypeError("payload debe ser dict o pandas.DataFrame")
 
-        # El pipeline del artefacto contiene solo el modelo; el encoding se hace aquí
-        # usando las columnas dummy del entrenamiento.
-        if features_all:
-            for col in features_all:
-                if col not in df.columns:
-                    df[col] = "" if col in features_cat else 0
-            df = df[features_all]
+        # 1. ftfy encoding fix + NFC normalization on categorical text fields
+        # NFC ensures tildes/accents match training data (e.g. 'ACTIVACIÓN' == 'ACTIVACIÓN')
+        _ftfy_cols = ["tipoAtencionSD", "tipoIncidencia", "area",
+                      "clasificacion", "productoSD", "aplicativo", "impactaCierre"]
+        for col in _ftfy_cols:
+            if col in df.columns:
+                df[col] = df[col].apply(
+                    lambda x: unicodedata.normalize("NFC", ftfy.fix_text(str(x)))
+                    if pd.notna(x) and str(x).strip() else (x if pd.notna(x) else "")
+                )
 
-        if features_cat:
-            df_cat = df[features_cat].fillna("").astype(str)
+        # 2. Cyclic sin/cos encoding from raw temporal features
+        for feat, period in features_cyclic_raw.items():
+            if feat in df.columns:
+                vals = pd.to_numeric(df[feat], errors="coerce").fillna(0)
+                df[f"{feat}_sin"] = np.sin(2 * np.pi * vals / period)
+                df[f"{feat}_cos"] = np.cos(2 * np.pi * vals / period)
+            else:
+                df[f"{feat}_sin"] = 0.0
+                df[f"{feat}_cos"] = 1.0
+
+        # 3. Categorical dummies
+        X_cat_in = pd.get_dummies(
+            df.reindex(columns=features_cat, fill_value=""), dtype=int
+        )
+
+        # 4. Numerical features (cyclic sin/cos + anio_creacion)
+        X_num_in = (
+            df.reindex(columns=features_num, fill_value=0)
+            .apply(pd.to_numeric, errors="coerce")
+            .fillna(0.0)
+        )
+
+        # 5. TF-IDF on resumen
+        if tfidf_vectorizer is not None:
+            if "resumen" in df.columns:
+                textos = df["resumen"].fillna("").astype(str)
+            else:
+                textos = pd.Series([""] * len(df), index=df.index)
+            textos_limpios = [_limpiar_resumen(t) for t in textos]
+            X_tfidf_in = tfidf_vectorizer.transform(textos_limpios)
+            tfidf_cols = [f"tfidf_{w}" for w in tfidf_vectorizer.get_feature_names_out()]
         else:
-            df_cat = pd.DataFrame(index=df.index)
+            n_tfidf = sum(1 for c in (dummy_columns or []) if c.startswith("tfidf_"))
+            X_tfidf_in = sp.csr_matrix((len(df), n_tfidf))
+            tfidf_cols = [c for c in (dummy_columns or []) if c.startswith("tfidf_")]
 
-        if features_num:
-            df_num = df[features_num].apply(pd.to_numeric, errors="coerce").fillna(0)
-        else:
-            df_num = pd.DataFrame(index=df.index)
+        # 6. Assemble sparse matrix and align to training column order
+        X_sp_in = sp.hstack([
+            sp.csr_matrix(X_cat_in.values),
+            sp.csr_matrix(X_num_in.values),
+            X_tfidf_in,
+        ])
+        in_cols = list(X_cat_in.columns) + list(X_num_in.columns) + tfidf_cols
+        X_final = (
+            pd.DataFrame(X_sp_in.toarray(), columns=in_cols)
+            .reindex(columns=dummy_columns, fill_value=0)
+            .astype(np.float32)
+            .values
+        )
 
-        df_base = pd.concat([df_cat, df_num], axis=1)
-        X = pd.get_dummies(df_base, columns=features_cat) if features_cat else df_base
-        if dummy_columns:
-            X = X.reindex(columns=dummy_columns, fill_value=0)
-
-        y = pipeline.predict(X)
+        # 7. Predict → inverse transform → clip
+        y = pipeline.predict(X_final)
         if target_inverse_fn is not None:
             y = target_inverse_fn(y)
+        y = np.clip(y, 0.25, target_max_h)
 
         if single:
             return float(y[0])

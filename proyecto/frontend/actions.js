@@ -179,13 +179,14 @@ function initForm() {
         e.preventDefault();
 
         const tipoInc = document.getElementById('tipo_incidencia').value;
+        const clasificacion = document.getElementById('clasificacion').value;
         const resumen = document.getElementById('resumen').value.trim();
         const tipoSD = document.getElementById('tipo_atencion_sd').value;
         const area = document.getElementById('area').value;
         const informador = document.getElementById('informador').value
             || document.getElementById('informador-search').value.trim();
 
-        if (!tipoInc || !resumen || !tipoSD || !area) {
+        if (!tipoInc || !clasificacion || !resumen || !tipoSD || !area) {
             mostrarError('Complete todos los campos obligatorios (*).');
             return;
         }
@@ -198,6 +199,7 @@ function initForm() {
         // descripcion_detallada es Optional en el backend → se omite.
         const payload = {
             tipo_incidencia: tipoInc,
+            clasificacion: clasificacion,
             resumen: resumen,
             tipo_atencion_sd: tipoSD,
             area: area,

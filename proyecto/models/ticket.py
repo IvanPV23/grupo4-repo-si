@@ -61,7 +61,8 @@ class TicketWeb(BaseModel):
     """
 
     # Campos del formulario actual
-    tipo_incidencia: str                   # "Incidente" | "Solicitud"
+    tipo_incidencia: str                   # "Incidente" | "Solicitud" | "Requerimiento"
+    clasificacion: Optional[str] = ""     # "Incidencia (error)" | "Solicitud" | "Requerimiento (nueva funcionalidad)"
     resumen: str                           # Descripción corta
     descripcion_detallada: Optional[str] = ""
     tipo_atencion_sd: str                  # "Error de servidor", "Consulta", etc.
@@ -89,11 +90,22 @@ class TicketWeb(BaseModel):
         mes = self.mes_creacion if self.mes_creacion is not None else dt.month
         anio = self.anio_creacion if self.anio_creacion is not None else dt.year
 
+        # Si el front envía clasificacion directamente, úsala; si no, inferir desde tipo_incidencia
+        # con vocabulario exacto del dataset de entrenamiento
+        if self.clasificacion:
+            clasificacion_val = self.clasificacion
+        elif self.tipo_incidencia.lower().startswith("solic"):
+            clasificacion_val = "Solicitud"
+        elif self.tipo_incidencia.lower().startswith("requer"):
+            clasificacion_val = "Requerimiento (nueva funcionalidad)"
+        else:
+            clasificacion_val = "Incidencia (error)"
+
         return TicketJiraFeatures(
             tipoIncidencia=self.tipo_incidencia,
             tipoAtencionSD=self.tipo_atencion_sd,
             area=self.area,
-            clasificacion="Solicitud" if self.tipo_incidencia.lower().startswith("solic") else "Incidente",
+            clasificacion=clasificacion_val,
             productoSD=self.producto or "",
             impactaCierre="SI" if self.impacta_al_cierre else "NO",
             informador=self.informador or "",
