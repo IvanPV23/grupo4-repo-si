@@ -12,7 +12,10 @@
       "name": "1. Recibir Ticket",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [0, 300],
+      "position": [
+        0,
+        300
+      ],
       "webhookId": "derivar-protecta-v3"
     },
     {
@@ -21,13 +24,19 @@
         "url": "http://agente-historico:8004/consultar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ ticket_id: ($json.body || $json).ticket_id, resumen: ($json.body || $json).resumen || '', tipo_atencion_sd: ($json.body || $json).tipo_atencion_sd || '', area: ($json.body || $json).area || '', producto: ($json.body || $json).producto || '', tipo_incidencia: ($json.body || $json).tipo_incidencia || '', informador: ($json.body || $json).informador || '' }) }}",        "options": { "timeout": 15000 }
+        "jsonBody": "={{ JSON.stringify({ ticket_id: ($json.body || $json).ticket_id, resumen: ($json.body || $json).resumen || '', tipo_atencion_sd: ($json.body || $json).tipo_atencion_sd || '', area: ($json.body || $json).area || '', producto: ($json.body || $json).producto || '', tipo_incidencia: ($json.body || $json).tipo_incidencia || '', informador: ($json.body || $json).informador || '' }) }}",
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "http-historico-v3-002",
       "name": "2. Histórico",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [260, 200]
+      "position": [
+        260,
+        200
+      ]
     },
     {
       "parameters": {
@@ -43,7 +52,10 @@
       "name": "3. ¿Hay antecedente?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [520, 200]
+      "position": [
+        520,
+        200
+      ]
     },
     {
       "parameters": {
@@ -53,7 +65,10 @@
       "name": "4a. Payload Orquestador (via histórico)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [780, 320]
+      "position": [
+        780,
+        320
+      ]
     },
     {
       "parameters": {
@@ -61,14 +76,19 @@
         "url": "http://agente-estimador:8005/estimar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ ticket_id: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).ticket_id || 'TK-N8N', tipo_incidencia: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_incidencia || '', tipo_atencion_sd: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_atencion_sd || '', area: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).area || '', producto: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).producto || '', resumen: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).resumen || '', urgencia_detectada: 'media' }) }}",
-        "options": { "timeout": 15000 }
+        "jsonBody": "={{ JSON.stringify({ ticket_id: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).ticket_id, tipo_incidencia: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_incidencia || '', tipo_atencion_sd: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_atencion_sd || '', area: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).area || '', producto: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).producto || '', resumen: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).resumen || '', aplicativo: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).aplicativo || '', informador: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).informador || '', impactaCierre: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).impacta_al_cierre ? 'SI' : 'NO', urgencia_detectada: 'media' }) }}",
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "http-estimador-v3-004",
       "name": "4. Estimador (ML)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [780, 80]
+      "position": [
+        780,
+        80
+      ]
     },
     {
       "parameters": {
@@ -76,14 +96,19 @@
         "url": "http://agente-complejidad:8001/evaluar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ ticket_id: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).ticket_id || 'TK-N8N', tipo_incidencia: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_incidencia || '', tipo_atencion_sd: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_atencion_sd || '', resumen: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).resumen || '', area: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).area || '', producto: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).producto || '', urgencia_detectada: 'media', tiempo_estimado_horas: $node[\"4. Estimador (ML)\"].json.tiempo_estimado_horas }) }}",
-        "options": { "timeout": 15000 }
+        "jsonBody": "={{ JSON.stringify({ ticket_id: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).ticket_id || 'TK-N8N', tipo_incidencia: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_incidencia || '', tipo_atencion_sd: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).tipo_atencion_sd || '', resumen: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).resumen || '', area: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).area || '', producto: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).producto || '', informador: ($node[\"1. Recibir Ticket\"].json.body || $node[\"1. Recibir Ticket\"].json).informador || '', urgencia_detectada: 'media', tiempo_estimado_horas: $node[\"4. Estimador (ML)\"].json.tiempo_estimado_horas }) }}",
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "http-complejidad-v3-005",
       "name": "5. Complejidad",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [1040, 80]
+      "position": [
+        1040,
+        80
+      ]
     },
     {
       "parameters": {
@@ -93,7 +118,10 @@
       "name": "5b. Payload Orquestador (via pipeline)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1300, 80]
+      "position": [
+        1300,
+        80
+      ]
     },
     {
       "parameters": {
@@ -102,13 +130,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "http-orquestador-v3-006",
       "name": "6. Orquestador",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [1560, 200]
+      "position": [
+        1560,
+        200
+      ]
     },
     {
       "parameters": {
@@ -117,13 +150,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": { "timeout": 20000 }
+        "options": {
+          "timeout": 20000
+        }
       },
       "id": "http-jira-python-v3-007",
       "name": "7. Crear Issue JIRA (Python)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [1820, 200]
+      "position": [
+        1820,
+        200
+      ]
     },
     {
       "parameters": {
@@ -133,24 +171,165 @@
       "name": "8. Armar Respuesta Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2080, 200]
+      "position": [
+        2080,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://agente-dashboard:8006/webhook/actualizar",
+        "sendBody": false,
+        "options": {}
+      },
+      "id": "http-dashboard-webhook-009",
+      "name": "9. Notificar Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "metricas",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh-metricas-v3-010",
+      "name": "10. Webhook Metricas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        400
+      ],
+      "webhookId": "metricas-dashboard-v3"
     }
   ],
   "connections": {
-    "1. Recibir Ticket": { "main": [[{ "node": "2. Histórico", "type": "main", "index": 0 }]] },
-    "2. Histórico": { "main": [[{ "node": "3. ¿Hay antecedente?", "type": "main", "index": 0 }]] },
-    "3. ¿Hay antecedente?": {
+    "1. Recibir Ticket": {
       "main": [
-        [{ "node": "4a. Payload Orquestador (via histórico)", "type": "main", "index": 0 }],
-        [{ "node": "4. Estimador (ML)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "2. Histórico",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "4a. Payload Orquestador (via histórico)": { "main": [[{ "node": "6. Orquestador", "type": "main", "index": 0 }]] },
-    "4. Estimador (ML)": { "main": [[{ "node": "5. Complejidad", "type": "main", "index": 0 }]] },
-    "5. Complejidad": { "main": [[{ "node": "5b. Payload Orquestador (via pipeline)", "type": "main", "index": 0 }]] },
-    "5b. Payload Orquestador (via pipeline)": { "main": [[{ "node": "6. Orquestador", "type": "main", "index": 0 }]] },
-    "6. Orquestador": { "main": [[{ "node": "7. Crear Issue JIRA (Python)", "type": "main", "index": 0 }]] },
-    "7. Crear Issue JIRA (Python)": { "main": [[{ "node": "8. Armar Respuesta Final", "type": "main", "index": 0 }]] }
+    "2. Histórico": {
+      "main": [
+        [
+          {
+            "node": "3. ¿Hay antecedente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. ¿Hay antecedente?": {
+      "main": [
+        [
+          {
+            "node": "4a. Payload Orquestador (via histórico)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4. Estimador (ML)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4a. Payload Orquestador (via histórico)": {
+      "main": [
+        [
+          {
+            "node": "6. Orquestador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Estimador (ML)": {
+      "main": [
+        [
+          {
+            "node": "5. Complejidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Complejidad": {
+      "main": [
+        [
+          {
+            "node": "5b. Payload Orquestador (via pipeline)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5b. Payload Orquestador (via pipeline)": {
+      "main": [
+        [
+          {
+            "node": "6. Orquestador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Orquestador": {
+      "main": [
+        [
+          {
+            "node": "7. Crear Issue JIRA (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Crear Issue JIRA (Python)": {
+      "main": [
+        [
+          {
+            "node": "8. Armar Respuesta Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10. Webhook Metricas": {
+      "main": [
+        [
+          {
+            "node": "9. Notificar Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

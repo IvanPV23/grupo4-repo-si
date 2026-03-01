@@ -37,6 +37,9 @@ class ConsultaHistorico(BaseModel):
     tipo_atencion_sd: str
     area: str
     producto: Optional[str] = ""
+    tipo_incidencia: Optional[str] = ""
+    informador: Optional[str] = ""
+    aplicativo: Optional[str] = ""
 
 
 class RespuestaHistorico(BaseModel):
@@ -256,12 +259,13 @@ async def consultar_historico(consulta: ConsultaHistorico):
             razonamiento=f"Se encontró ticket similar con similitud={mejor_score}...",
             timestamp=datetime.now().isoformat(),
             via_historico=True,
-            tipo_incidencia="",  # ConsultaHistorico no expone tipo_incidencia
+            tipo_incidencia=consulta.tipo_incidencia or "",
             tipo_atencion_sd=consulta.tipo_atencion_sd,
             area=consulta.area,
             producto=consulta.producto or "",
             resumen=consulta.resumen,
-            informador="",  
+            informador=consulta.informador or "",
+            aplicativo=consulta.aplicativo or "",
             urgencia_detectada="media",  # Valor por defecto
         )
 
@@ -275,11 +279,13 @@ async def consultar_historico(consulta: ConsultaHistorico):
         timestamp=datetime.now().isoformat(),
         # ⭐ NUEVOS CAMPOS
         via_historico=False,
-        tipo_incidencia=consulta.resumen,
+        tipo_incidencia=consulta.tipo_incidencia or "",
         tipo_atencion_sd=consulta.tipo_atencion_sd,
         area=consulta.area,
         producto=consulta.producto or "",
         resumen=consulta.resumen,
+        informador=consulta.informador or "",
+        aplicativo=consulta.aplicativo or ""
     )
 
 

@@ -8,8 +8,9 @@ Expone endpoints con datos de gráficos calculados desde:
 Los datos se retornan como JSON puro; el frontend los renderiza con Chart.js.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 from datetime import datetime
 from pathlib import Path
 from collections import Counter
@@ -38,6 +39,29 @@ RUTA_EXCEL = _BASE / "data" / "outputs" / "reporte_acumulativo.xlsx"
 RUTA_DB    = _BASE / "data" / "historico.db"
 MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://agente-mlflow:5000")
 
+
+# ── Connection Manager Websockets ──────────────────────────────────────────
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.warning(f"Error enviando a websocket: {e}")
+
+manager = ConnectionManager()
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -122,6 +146,35 @@ async def health():
         "mlflow_uri":   MLFLOW_URI,
     }
 
+# ── Webhooks & WebSockets ──────────────────────────────────────────────────
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    Endpoint para que el frontend (metricas.html) se conecte por WebSocket
+    y reciba notificaciones de actualización en tiempo real.
+    """
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Mantener la conexión abierta esperando posibles mensajes del cliente (si hiciera falta)
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logger.warning(f"WebSocket desconectado con error: {e}")
+        manager.disconnect(websocket)
+
+@app.post("/webhook/actualizar")
+async def webhook_actualizar():
+    """
+    Llamado por n8n (u otro servicio) cuando un nuevo ticket es procesado y
+    guardado en el Excel histórico. Dispara mensaje de 'refresh' a los clientes conectados.
+    """
+    logger.info("Recibido evento de actualización. Notificando a WebSockets.")
+    await manager.broadcast("refresh")
+    return {"status": "ok", "message": "Actualización enviada a clientes"}
+
 
 @app.get("/charts/resumen")
 async def resumen():
@@ -182,38 +235,47 @@ async def distribucion_complejidad():
 @app.get("/charts/tiempo")
 async def distribucion_tiempo():
     """
-    Distribución de tickets por categoría de tiempo estimado.
-    También incluye los últimos N puntos de latencia desde MLflow.
+    Tendencia de tiempo estimado por producto.
+
+    Devuelve una serie con el promedio de `tiempo_estimado_horas` agrupado
+    por `producto`. Se usa en el dashboard como gráfico de líneas (producto en
+    el eje X, horas en el eje Y). También conserva información auxiliar utilizada
+    en el KPI de latencia y promedio general.
     """
     filas = _leer_excel()
-    conteo_cat = Counter(
-        str(f.get("categoria_tiempo", "sin_datos")).lower()
-        for f in filas if f.get("categoria_tiempo")
-    )
-    orden = ["rapido", "normal", "lento", "muy_lento"]
-    labels = [c for c in orden if c in conteo_cat] + [c for c in conteo_cat if c not in orden]
-    data   = [conteo_cat[l] for l in labels]
 
-    # Promedio de tiempo estimado desde Excel
-    tiempos = [
-        float(f["tiempo_estimado_horas"])
-        for f in filas
-        if f.get("tiempo_estimado_horas") is not None
-        and str(f["tiempo_estimado_horas"]).replace(".", "", 1).isdigit()
-    ]
+    # Agrupar por producto y calcular promedio de horas
+    prod_map: dict[str, list[float]] = {}
+    for f in filas:
+        prod = f.get("producto") or "sin_producto"
+        hora = f.get("tiempo_estimado_horas")
+        if hora is None:
+            continue
+        # hora puede venir como string o número
+        try:
+            h = float(hora)
+        except Exception:
+            continue
+        prod_map.setdefault(prod, []).append(h)
+
+    labels = list(prod_map.keys())
+    data = [round(sum(v) / len(v), 2) for v in prod_map.values()]
+
+    # Promedio global de tiempo estimado (para KPI)
+    tiempos = [h for lst in prod_map.values() for h in lst]
     promedio_horas = round(sum(tiempos) / len(tiempos), 2) if tiempos else None
 
-    # Latencias desde MLflow
+    # Latencias desde MLflow (igual que antes)
     mlflow_runs = _mlflow_ultimas_inferencias(50)
-    latencias = [r["latencia_ms"] for r in mlflow_runs if r.get("latencia_ms") is not None]
+    latencias = [r.get("latencia_ms") for r in mlflow_runs if r.get("latencia_ms") is not None]
     promedio_latencia_ms = round(sum(latencias) / len(latencias), 1) if latencias else None
 
     return {
-        "labels":               labels,
-        "data":                 data,
-        "total":                len(filas),
-        "promedio_horas":       promedio_horas,
-        "promedio_latencia_ms": promedio_latencia_ms,
+        "labels":                labels,
+        "data":                  data,
+        "total":                 len(filas),
+        "promedio_horas":        promedio_horas,
+        "promedio_latencia_ms":  promedio_latencia_ms,
         "mlflow_runs_analizados": len(mlflow_runs),
     }
 

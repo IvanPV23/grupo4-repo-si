@@ -67,6 +67,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ----------------------------------------------------------------------------
+# Manejo global de excepciones (para asegurar siempre respuesta JSON)
+# ----------------------------------------------------------------------------
+from fastapi.requests import Request
+
+@app.exception_handler(Exception)
+async def all_exception_handler(request: Request, exc: Exception):
+    # Log completo con traza para diagnóstico en servidor
+    logger.exception(f"Unhandled exception: {exc}")
+    # Retornar JSON limpio (el frontend ya está preparado para manejar mensajes)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)}
+    )
+
+
 # Servir el frontend estático desde /app
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
 if os.path.isdir(FRONTEND_DIR):
@@ -223,60 +240,74 @@ async def health():
     }
 
 
+
 @app.post("/tickets/nuevo", tags=["Tickets"], response_model=ResultadoDerivacion)
 async def crear_ticket(ticket: TicketEntrada):
     """
     Recibe un ticket del formulario y lo envía a n8n para orquestar.
     n8n ejecuta todos los agentes + crea el issue en Jira.
     La API recibe el resultado, guarda en Excel y lo devuelve al frontend.
+
+    Se captura cualquier excepción interna y se convierte en HTTPException,
+    de manera que el cliente siempre reciba una respuesta JSON legible.
     """
-    # ── 1. Delegar todo a n8n (pipeline + Jira) ────────────────────────
-    # ticket_id se genera aquí y se inyecta en el payload:
-    # TicketWeb no lo tiene como campo, pero todos los agentes lo requieren.
-    ticket_id = _generar_ticket_id()
-    ticket_dict = ticket.model_dump()
-    ticket_dict["ticket_id"] = ticket_id
-    logger.info(f"[tickets/nuevo] Enviando ticket {ticket_id} a n8n → {N8N_WEBHOOK_URL}")
-    resultado = await _enviar_a_n8n(ticket_dict)
+    try:
+        # ── 1. Delegar todo a n8n (pipeline + Jira) ────────────────────────
+        # ticket_id se genera aquí y se inyecta en el payload:
+        # TicketWeb no lo tiene como campo, pero todos los agentes lo requieren.
+        ticket_id = _generar_ticket_id()
+        ticket_dict = ticket.model_dump()
+        ticket_dict["ticket_id"] = ticket_id
+        logger.info(f"[tickets/nuevo] Enviando ticket {ticket_id} a n8n → {N8N_WEBHOOK_URL}")
+        resultado = await _enviar_a_n8n(ticket_dict)
 
-    if resultado is None:
-        # n8n es el único orquestador válido en este flujo.
-        logger.error(f"[tickets/nuevo] n8n no retornó resultado válido para ticket. URL: {N8N_WEBHOOK_URL}")
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "El orquestador n8n no está disponible o retornó un error. "
-                f"Webhook: {N8N_WEBHOOK_URL}. "
-                "Verifique que el contenedor n8n esté activo y el workflow 'Orquestador Central — Derivacion v3' "
-                "esté importado y activo."
-            ),
-        )
+        if resultado is None:
+            # n8n es el único orquestador válido en este flujo.
+            logger.error(f"[tickets/nuevo] n8n no retornó resultado válido para ticket. URL: {N8N_WEBHOOK_URL}")
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "El orquestador n8n no está disponible o retornó un error. "
+                    f"Webhook: {N8N_WEBHOOK_URL}. "
+                    "Verifique que el contenedor n8n esté activo y el workflow 'Orquestador Central — Derivacion v3' "
+                    "esté importado y activo."
+                ),
+            )
 
-    logger.info(f"[tickets/nuevo] n8n completó pipeline. via_historico={resultado.get('via_historico')}")
+        logger.info(f"[tickets/nuevo] n8n completó pipeline. via_historico={resultado.get('via_historico')}")
 
-    # ── 2. Guardar en Excel acumulativo ─────────────────────────────
-    from utils.excel_acumulativo import agregar_fila_reporte
-    agregar_fila_reporte({
-        "ticket_id":             resultado.get("ticket_id", ""),
-        "resumen":               resultado.get("resumen", ticket.resumen),
-        "tipo_incidencia":       resultado.get("tipo_incidencia", ticket.tipo_incidencia),
-        "tipo_atencion_sd":      resultado.get("tipo_atencion_sd", ticket.tipo_atencion_sd),
-        "area":                  resultado.get("area", ticket.area),
-        "producto":              resultado.get("producto", ticket.producto or ""),
-        "aplicativo":            resultado.get("aplicativo", ticket.aplicativo or ""),
-        "informador":            resultado.get("informador", ticket.informador or ""),
-        "urgencia_detectada":    resultado.get("urgencia_detectada", ""),
-        "tiempo_estimado_horas": resultado.get("tiempo_estimado_horas"),
-        "complejidad":           resultado.get("complejidad", ""),
-        "score_complejidad":     resultado.get("score_complejidad", 0),
-        "nivel_asignado":        resultado.get("nivel_asignado", ""),
-        "mesa_asignada":         resultado.get("mesa_asignada", ""),
-        "via_historico":         str(resultado.get("via_historico", False)),
-        "resultado":             "EN_COLA" if resultado.get("en_cola") else "DERIVADO_AUTOMATICAMENTE",
-        "razonamiento":          resultado.get("razonamiento", ""),
-    })
+        # ── 2. Guardar en Excel acumulativo ─────────────────────────────
+        from utils.excel_acumulativo import agregar_fila_reporte
+        agregar_fila_reporte({
+            "ticket_id":             resultado.get("ticket_id", ""),
+            "resumen":               resultado.get("resumen", ticket.resumen),
+            "tipo_incidencia":       resultado.get("tipo_incidencia", ticket.tipo_incidencia),
+            "tipo_atencion_sd":      resultado.get("tipo_atencion_sd", ticket.tipo_atencion_sd),
+            "area":                  resultado.get("area", ticket.area),
+            "producto":              resultado.get("producto", ticket.producto or ""),
+            "aplicativo":            resultado.get("aplicativo", ticket.aplicativo or ""),
+            "informador":            resultado.get("informador", ticket.informador or ""),
+            "urgencia_detectada":    resultado.get("urgencia_detectada", ""),
+            "tiempo_estimado_horas": resultado.get("tiempo_estimado_horas"),
+            "categoria_tiempo":      resultado.get("categoria_tiempo", ""),
+            "complejidad":           resultado.get("complejidad", ""),
+            "score_complejidad":     resultado.get("score_complejidad", 0),
+            "nivel_asignado":        resultado.get("nivel_asignado", ""),
+            "mesa_asignada":         resultado.get("mesa_asignada", ""),
+            "via_historico":         str(resultado.get("via_historico", False)),
+            "resultado":             "EN_COLA" if resultado.get("en_cola") else "DERIVADO_AUTOMATICAMENTE",
+            "razonamiento":          resultado.get("razonamiento", ""),
+        })
 
-    return ResultadoDerivacion(**{k: resultado.get(k) for k in ResultadoDerivacion.model_fields})
+        return ResultadoDerivacion(**{k: resultado.get(k) for k in ResultadoDerivacion.model_fields})
+
+    except HTTPException:
+        # volver a lanzar para que FastAPI lo convierta en respuesta apropiada
+        raise
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception("[tickets/nuevo] Excepción inesperada")
+        # enviamos un mensaje limpio al cliente
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.get("/cola", tags=["Tickets"])

@@ -136,7 +136,15 @@ function initForm() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            const data = await res.json();
+            let data;
+            try {
+                // try parsing JSON; if the response is not valid JSON (e.g. 500 HTML page)
+                data = await res.json();
+            } catch (parseErr) {
+                // fall back to plain text so we can show a meaningful message
+                const text = await res.text();
+                throw new Error(text || parseErr.message);
+            }
             if (!res.ok) throw new Error(data.detail || 'Error del servidor');
             mostrarResultado(data);
         } catch (err) {
