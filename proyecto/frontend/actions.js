@@ -10,7 +10,7 @@ const historial = [];
 
 /* ── Lista de informantes ── */
 const INFORMANTES = [
-    'apolinomellany3', 'apolinomellany3@gmail.com',
+    'apolinomellany3', 'jhairrmb3', 'danieldragoncity69', 
     'aalburquer', 'acastro', 'administrisa', 'afung', 'agomez', 'ahernandez',
     'alfonsos', 'amachuca', 'anavelic', 'aboccolini', 'acamacho', 'acarrasco',
     'acassantanec', 'acostell', 'csimaro', 'DQUIÑADO', 'avellar', 'adlatorne',
