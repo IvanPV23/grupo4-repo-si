@@ -26,7 +26,6 @@ logger = logging.getLogger("api")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.excel_acumulativo import agregar_fila_reporte, obtener_resumen_reporte
 from models.ticket import TicketWeb
-from services.pipeline import ejecutar_pipeline as ejecutar_pipeline_service
 
 # ── URLs de agentes (internos Docker) ─────────────────────────────────────────
 AGENTE_HISTORICO   = os.getenv("AGENTE_HISTORICO_URL",   "http://agente-historico:8004")
@@ -146,21 +145,6 @@ def _generar_ticket_id() -> str:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
-
-@app.post("/pipeline/ejecutar", tags=["Pipeline"], include_in_schema=True)
-async def ejecutar_pipeline(ticket: TicketEntrada):
-    """
-    Llamado por n8n: ejecuta los 4 agentes y devuelve el resultado crudo.
-    """
-    ticket_id = _generar_ticket_id()
-    urls = {
-        "historico": AGENTE_HISTORICO,
-        "estimador": AGENTE_ESTIMADOR,
-        "complejidad": AGENTE_COMPLEJIDAD,
-        "orquestador": AGENTE_ORQUESTADOR,
-    }
-    resultado = await ejecutar_pipeline_service(ticket.model_dump(), ticket_id, urls)
-    return JSONResponse(content=resultado)
 
 
 @app.post("/jira/crear", tags=["Pipeline"], include_in_schema=True)

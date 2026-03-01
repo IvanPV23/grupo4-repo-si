@@ -165,26 +165,30 @@ select {
 
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-.checkbox-row {
+.toggle-btn {
   display: flex; align-items: center; gap: 0.55rem;
+  width: 100%;
   padding: 0.6rem 0.85rem;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 7px;
   cursor: pointer;
-  transition: border-color .15s;
-}
-.checkbox-row:hover { border-color: var(--border-focus); }
-.checkbox-row input[type="checkbox"] {
-  width: 1rem; height: 1rem; cursor: pointer;
-  accent-color: var(--blue);
-  flex-shrink: 0;
-}
-.checkbox-row label {
-  margin: 0; cursor: pointer;
   font-size: 0.82rem;
-  color: var(--text);
+  font-family: inherit;
+  color: var(--text-muted);
   font-weight: 400;
+  transition: border-color .15s, background .15s, color .15s;
+  text-align: left;
+}
+.toggle-btn:hover {
+  border-color: var(--border-focus);
+  color: var(--text);
+}
+.toggle-btn.active {
+  background: var(--blue-light);
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: 600;
 }
 
 /* ── Searchable dropdown ── */
