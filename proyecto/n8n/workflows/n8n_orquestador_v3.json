@@ -165,6 +165,26 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "http://agente-comunicador:8007/enviar",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ informador: ($('6. Orquestador').item.json.informador || ''), ticket_id: ($('6. Orquestador').item.json.ticket_id || ''), mesa_asignada: ($('6. Orquestador').item.json.mesa_asignada || ''), nivel_asignado: ($('6. Orquestador').item.json.nivel_asignado || ''), resumen: ($('6. Orquestador').item.json.resumen || ''), jira_issue_key: ($json.jira_issue_key || null), jira_url: ($json.jira_url || null), complejidad: ($('6. Orquestador').item.json.complejidad || ''), tiempo_estimado_horas: ($('6. Orquestador').item.json.tiempo_estimado_horas ?? null), area: ($('6. Orquestador').item.json.area || ''), producto: ($('6. Orquestador').item.json.producto || '') }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "http-comunicador-v3-009a",
+      "name": "9a. Comunicador (Email)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1820,
+        360
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "const jira = $input.first().json;\nconst orq = $('6. Orquestador').item.json;\nreturn [{ json: { ticket_id: orq.ticket_id, mesa_asignada: orq.mesa_asignada, nivel_asignado: orq.nivel_asignado, en_cola: orq.en_cola || false, complejidad: orq.complejidad, score_complejidad: orq.score_complejidad, tiempo_estimado_horas: orq.tiempo_estimado_horas, categoria_tiempo: orq.categoria_tiempo, via_historico: orq.via_historico || false, razonamiento: orq.razonamiento, resumen: orq.resumen, tipo_incidencia: orq.tipo_incidencia, tipo_atencion_sd: orq.tipo_atencion_sd, area: orq.area, producto: orq.producto || '', aplicativo: orq.aplicativo || '', informador: orq.informador || '', urgencia_detectada: orq.urgencia_detectada || '', jira_issue_key: jira.jira_issue_key || null, jira_url: jira.jira_url || null, timestamp: orq.timestamp } }];\n"
       },
       "id": "code-respuesta-v3-008",
@@ -311,6 +331,11 @@
         [
           {
             "node": "8. Armar Respuesta Final",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "9a. Comunicador (Email)",
             "type": "main",
             "index": 0
           }

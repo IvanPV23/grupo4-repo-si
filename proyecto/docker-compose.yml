@@ -195,6 +195,33 @@ services:
       retries: 3
 
   # =====================================================
+  # Agente COMUNICADOR — Puerto 8007
+  # Envía correo al informador con detalle de asignación
+  # Solo envía si el informador tiene email válido (mapeo o @)
+  # =====================================================
+  agente-comunicador:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agente-comunicador
+    restart: unless-stopped
+    ports:
+      - "8007:8007"
+    environment:
+      - AGENT_NAME=comunicador
+      - AGENT_PORT=8007
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=${SMTP_USER:-apolinomellany3@gmail.com}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    volumes:
+      - ./agents/comunicador:/app/agents/comunicador
+      - ./data:/app/data
+    networks:
+      - tickets-network
+    command: uvicorn agents.comunicador.main:app --host 0.0.0.0 --port 8007 --reload
+
+  # =====================================================
   # Agente DASHBOARD — Puerto 8006
   # Sirve datos de gráficos desde SQLite + Excel
   # =====================================================

@@ -124,6 +124,21 @@ docker-compose up -d --build
 | `agente-estimador` | 8005 | Estimación de tiempo |
 | `agente-complejidad` | 8001 | Evaluación de complejidad |
 | `agente-orquestador` | 8003 | Asignación de mesas |
+| `agente-comunicador` | 8007 | Envío de correo al informador |
+| `agente-dashboard` | 8006 | Datos para gráficos |
+
+### 2b. Configurar Agente Comunicador (opcional)
+
+El Comunicador envía un correo al informador con el detalle de asignación. Solo envía si el informador tiene email válido (ya contiene `@` o está en el mapeo `data/informador_emails.json`).
+
+Crea un archivo `.env` en la carpeta `proyecto` con:
+
+```
+SMTP_USER=tu_correo@gmail.com
+SMTP_PASSWORD=tu_contraseña_de_aplicacion
+```
+
+Usa la [contraseña de aplicación de Gmail](https://support.google.com/accounts/answer/185833) (no la contraseña normal).
 
 ### 3. Configurar n8n
 
