@@ -1,7 +1,7 @@
 """
 Agente ESTIMADOR — Puerto 8005
 Estima el tiempo de resolución de un ticket (en horas)
-usando exclusivamente un modelo de ML entrenado (linear_regression.pkl).
+usando exclusivamente un modelo de ML entrenado (LightGBM, modelo.pkl).
 """
 
 from fastapi import FastAPI, HTTPException
@@ -11,12 +11,8 @@ from typing import Optional, Any
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from io import BytesIO
 import cloudpickle
-import sys
 import time
-import os
-import logging
 
 import html
 import re
@@ -25,9 +21,6 @@ import numpy as np
 import ftfy
 import scipy.sparse as sp
 import pandas as pd
-
-logger = logging.getLogger("estimador")
-
 
 def _limpiar_resumen(texto: str) -> str:
     """Limpieza de texto para TF-IDF. Réplica exacta de la función del notebook."""
@@ -44,34 +37,11 @@ def _limpiar_resumen(texto: str) -> str:
     texto = re.sub(r"[\/\\:;\-><\=\+#@!?\.,\(\)\[\]\{\}\"'*&%$~`|_]", " ", texto)
     return re.sub(r"\s+", " ", texto).strip()
 
-# ── MLflow tracking (no-op si el servidor no está disponible) ───────────────
-_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "")
-_MLFLOW_EXPERIMENT = os.getenv("MLFLOW_EXPERIMENT_NAME", "estimador-inferencias")
-_mlflow_ready = False
-
-def _init_mlflow():
-    """Inicializa MLflow una sola vez al arrancar el servicio."""
-    global _mlflow_ready
-    if not _MLFLOW_URI:
-        return
-    try:
-        import mlflow
-        mlflow.set_tracking_uri(_MLFLOW_URI)
-        mlflow.set_experiment(_MLFLOW_EXPERIMENT)
-        _mlflow_ready = True
-        logger.info(f"[MLflow] Conectado a {_MLFLOW_URI}, experimento '{_MLFLOW_EXPERIMENT}'")
-    except Exception as e:
-        logger.warning(f"[MLflow] No disponible al arrancar ({e}). El tracking se omitirá.")
-
 app = FastAPI(
     title="Agente Estimador",
     description="Estima tiempo de resolución de tickets en horas",
     version="1.0.0"
 )
-
-@app.on_event("startup")
-async def startup_event():
-    _init_mlflow()
 
 app.add_middleware(
     CORSMiddleware,
@@ -87,15 +57,14 @@ app.add_middleware(
 class ConsultaEstimador(BaseModel):
     ticket_id: str
 
-    # --- Payload "legacy" (reglas) ---
+    # --- Payload "legacy" (snake_case) ---
     tipo_incidencia: Optional[str] = None          # "Incidente" | "Solicitud"
     tipo_atencion_sd: Optional[str] = None
     area: Optional[str] = ""
     producto: Optional[str] = ""
     resumen: Optional[str] = ""
-    urgencia_detectada: Optional[str] = "media"   # "alta" | "media"
 
-    # --- Payload del modelo entrenado (según el ejemplo del usuario) ---
+    # --- Payload del modelo entrenado (camelCase) ---
     tipoIncidencia: Optional[str] = Field(default=None)
     tipoAtencionSD: Optional[str] = Field(default=None)
     clasificacion: Optional[str] = Field(default=None)
@@ -103,27 +72,12 @@ class ConsultaEstimador(BaseModel):
     impactaCierre: Optional[str] = Field(default=None)
     informador: Optional[str] = Field(default=None)
     aplicativo: Optional[str] = Field(default=None)
-    hora_creacion: Optional[int] = Field(default=None, ge=0, le=23)
-    dia_semana: Optional[int] = Field(default=None, ge=0, le=6)  # lunes=0 ... domingo=6
-    mes_creacion: Optional[int] = Field(default=None, ge=1, le=12)
-    anio_creacion: Optional[int] = Field(default=None, ge=2000, le=2100)
-    fecha_creacion: Optional[datetime] = Field(default=None)
 
     def to_ml_features(self) -> dict[str, Any]:
         """
-        Normaliza el request al esquema esperado por el modelo entrenado.
-
-        - Acepta campos camelCase (ejemplo) y completa campos temporales si faltan.
-        - El modelo espera los nombres EXACTOS de columnas del training.
+        Normaliza el request al esquema esperado por el modelo entrenado (v4).
+        Acepta campos camelCase y snake_case; el modelo espera los nombres EXACTOS del training.
         """
-        now = datetime.now()
-        dt = self.fecha_creacion or now
-
-        hora_creacion = self.hora_creacion if self.hora_creacion is not None else dt.hour
-        dia_semana = self.dia_semana if self.dia_semana is not None else dt.weekday()  # lunes=0
-        mes_creacion = self.mes_creacion if self.mes_creacion is not None else dt.month
-        anio_creacion = self.anio_creacion if self.anio_creacion is not None else dt.year
-
         return {
             "tipoIncidencia": self.tipoIncidencia or (self.tipo_incidencia or ""),
             "tipoAtencionSD": self.tipoAtencionSD or (self.tipo_atencion_sd or ""),
@@ -134,10 +88,6 @@ class ConsultaEstimador(BaseModel):
             "informador": self.informador or "",
             "aplicativo": self.aplicativo or "",
             "resumen": self.resumen or "",
-            "hora_creacion": int(hora_creacion),
-            "dia_semana": int(dia_semana),
-            "mes_creacion": int(mes_creacion),
-            "anio_creacion": int(anio_creacion),
         }
 
 class RespuestaEstimador(BaseModel):
@@ -173,9 +123,7 @@ def _load_artefact() -> dict[str, Any]:
     features_cat = artefact.get("features_cat") or []
     features_num = artefact.get("features_num") or []
     dummy_columns = artefact.get("dummy_columns") or []
-    features_cyclic_raw = artefact.get("features_cyclic_raw") or {
-        "hora_creacion": 24, "dia_semana": 7, "mes_creacion": 12
-    }
+    features_cyclic_raw = artefact.get("features_cyclic_raw") or {}
     tfidf_vectorizer = artefact.get("tfidf_vectorizer")
     target_max_h = float(artefact.get("target_max_h", 720))
     model_name = artefact.get("model_name", "modelo.pkl")
@@ -296,56 +244,9 @@ async def health():
     return {"status": "healthy", "agent": "Estimador", "timestamp": datetime.now().isoformat()}
 
 
-def _log_mlflow_inferencia(
-    ticket_id: str,
-    features: dict,
-    horas_final: float,
-    categoria: str,
-    latencia_ms: float,
-    model_name: str,
-):
-    """
-    Registra un run de inferencia en MLflow.
-    Se llama de forma best-effort: si falla, no interrumpe la respuesta.
-    """
-    if not _mlflow_ready:
-        return
-    try:
-        import mlflow
-        with mlflow.start_run(run_name=f"inf-{ticket_id}"):
-            # Params: features de entrada (strings y números)
-            mlflow.log_params({
-                "tipoIncidencia": str(features.get("tipoIncidencia", ""))[:250],
-                "tipoAtencionSD": str(features.get("tipoAtencionSD", ""))[:250],
-                "area":           str(features.get("area", ""))[:250],
-                "productoSD":     str(features.get("productoSD", ""))[:250],
-                "hora_creacion":  features.get("hora_creacion", 0),
-                "dia_semana":     features.get("dia_semana", 0),
-                "mes_creacion":   features.get("mes_creacion", 1),
-            })
-            # Métricas: predicción + latencia
-            mlflow.log_metrics({
-                "tiempo_estimado_horas": horas_final,
-                "latencia_ms":           round(latencia_ms, 2),
-            })
-            # Tags: contexto del run
-            mlflow.set_tags({
-                "ticket_id":     ticket_id,
-                "categoria":     categoria,
-                "model_version": model_name,
-                "servicio":      "agente-estimador",
-            })
-    except Exception as e:
-        logger.warning(f"[MLflow] Error al loguear inferencia {ticket_id}: {e}")
-
-
 @app.post("/estimar", response_model=RespuestaEstimador)
 async def estimar(consulta: ConsultaEstimador):
-    """
-    Estima el tiempo de resolución del ticket en horas.
-    Basado exclusivamente en el modelo de ML entrenado (linear_regression.pkl).
-    Cada inferencia queda trackeada en MLflow (si el servidor está disponible).
-    """
+    """Estima el tiempo de resolución del ticket en horas (LightGBM, modelo.pkl)."""
     t0 = time.perf_counter()
     try:
         artefact = _load_artefact()
@@ -363,16 +264,6 @@ async def estimar(consulta: ConsultaEstimador):
     rango_max = round(horas_final * 1.25, 2)
     categoria = _categoria_tiempo(horas_final)
     model_name = artefact.get("model_name", "modelo.pkl")
-
-    # Tracking MLflow (best-effort, no bloquea la respuesta)
-    _log_mlflow_inferencia(
-        ticket_id=consulta.ticket_id,
-        features=features,
-        horas_final=horas_final,
-        categoria=categoria,
-        latencia_ms=latencia_ms,
-        model_name=model_name,
-    )
 
     resultado = {
         "tiempo_estimado_horas": horas_final,
