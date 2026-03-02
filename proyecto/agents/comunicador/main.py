@@ -47,6 +47,7 @@ class PayloadComunicador(BaseModel):
     tiempo_estimado_horas: Optional[float] = None
     area: Optional[str] = ""
     producto: Optional[str] = ""
+    en_cola: Optional[bool] = False
 
 
 class RespuestaComunicador(BaseModel):
@@ -144,11 +145,16 @@ async def enviar_correo(payload: PayloadComunicador):
             timestamp=ts
         )
 
-    asunto = f"Ticket {payload.ticket_id} asignado a mesa {payload.mesa_asignada}"
+    # Asunto según si el ticket quedó en cola o asignado
+    if payload.en_cola:
+        asunto = f"Ticket {payload.ticket_id} en cola de espera — Mesa {payload.mesa_asignada}"
+    else:
+        asunto = f"Ticket {payload.ticket_id} asignado a mesa {payload.mesa_asignada}"
     lineas = [
         f"Ticket: {payload.ticket_id}",
         f"Mesa asignada: {payload.mesa_asignada}",
         f"Nivel: {payload.nivel_asignado or '-'}",
+        f"Estado: {'En cola de espera' if payload.en_cola else 'Asignado'}",
         f"Resumen: {payload.resumen or '-'}",
         f"Complejidad: {payload.complejidad or '-'}",
         f"Tiempo estimado: {payload.tiempo_estimado_horas or '-'} horas",

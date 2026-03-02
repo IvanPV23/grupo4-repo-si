@@ -169,7 +169,7 @@
         "url": "http://agente-comunicador:8007/enviar",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ informador: ($('6. Orquestador').item.json.informador || ''), ticket_id: ($('6. Orquestador').item.json.ticket_id || ''), mesa_asignada: ($('6. Orquestador').item.json.mesa_asignada || ''), nivel_asignado: ($('6. Orquestador').item.json.nivel_asignado || ''), resumen: ($('6. Orquestador').item.json.resumen || ''), jira_issue_key: ($json.jira_issue_key || null), jira_url: ($json.jira_url || null), complejidad: ($('6. Orquestador').item.json.complejidad || ''), tiempo_estimado_horas: ($('6. Orquestador').item.json.tiempo_estimado_horas ?? null), area: ($('6. Orquestador').item.json.area || ''), producto: ($('6. Orquestador').item.json.producto || '') }) }}",
+        "jsonBody": "={{ JSON.stringify({ informador: ($('6. Orquestador').item.json.informador || ''), ticket_id: ($('6. Orquestador').item.json.ticket_id || ''), mesa_asignada: ($('6. Orquestador').item.json.mesa_asignada || ''), nivel_asignado: ($('6. Orquestador').item.json.nivel_asignado || ''), resumen: ($('6. Orquestador').item.json.resumen || ''), jira_issue_key: ($json.jira_issue_key || null), jira_url: ($json.jira_url || null), complejidad: ($('6. Orquestador').item.json.complejidad || ''), tiempo_estimado_horas: ($('6. Orquestador').item.json.tiempo_estimado_horas ?? null), area: ($('6. Orquestador').item.json.area || ''), producto: ($('6. Orquestador').item.json.producto || ''), en_cola: ($('6. Orquestador').item.json.en_cola || false) }) }}",
         "options": {
           "timeout": 10000
         }

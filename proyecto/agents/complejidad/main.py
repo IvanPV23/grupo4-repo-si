@@ -176,15 +176,15 @@ def evaluar_complejidad(ticket: TicketEvaluacion) -> dict:
         factores["producto"] = f"{pts_prod:+d} (producto: {prod})"
 
     # 7. Área del ticket
-        area = (ticket.area or "").strip().lower()
-        pts_area = 0
-        for key, pts in PUNTAJE_AREA.items():
-            if key in area:
-                pts_area = pts
-                break
-        if pts_area != 0:
-            score += pts_area
-            factores["area"] = f"{pts_area:+d} (área: {area})"
+    area = (ticket.area or "").strip().lower()
+    pts_area = 0
+    for key, pts in PUNTAJE_AREA.items():
+        if key in area:
+            pts_area = pts
+            break
+    if pts_area != 0:
+        score += pts_area
+        factores["area"] = f"{pts_area:+d} (área: {area})"
 
     # Clamp 0–100
     score = max(0.0, min(100.0, round(score, 1)))
